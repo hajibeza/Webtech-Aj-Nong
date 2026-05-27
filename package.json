@@ -1,0 +1,24 @@
+{
+  "name": "a-nong-sha-sha-sha",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hajibeza/Webtech-Aj-Nong.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/hajibeza/Webtech-Aj-Nong/issues"
+  },
+  "homepage": "https://github.com/hajibeza/Webtech-Aj-Nong#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
