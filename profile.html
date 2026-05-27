@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>โปรไฟล์ของฉัน - ระบบจองคลาสเรียนออนไลน์</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg glass-nav sticky-top">
+        <div class="container">
+            <a class="navbar-brand fw-bold text-primary" href="index.html">
+                <i class="bi bi-calendar-check me-2"></i>จองคลาส.com
+            </a>
+            
+            <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                <ul class="navbar-nav align-items-center">
+                    <li class="nav-item">
+                        <a class="nav-link" href="index.html">คลาสทั้งหมด</a>
+                    </li>
+                    <li class="nav-item dropdown ms-lg-3 mt-2 mt-lg-0" id="user-menu">
+                        <a class="nav-link dropdown-toggle fw-bold active" href="#" data-bs-toggle="dropdown">
+                            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=30&q=80" alt="User" class="rounded-circle me-1" width="30" height="30">
+                            สมชาย รักเรียน
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end border-0 shadow-sm rounded-3">
+                            <li><a class="dropdown-item active" href="profile.html"><i class="bi bi-person me-2"></i>โปรไฟล์ & ประวัติการจอง</a></li>
+                            <li><a class="dropdown-item d-none text-primary" href="admin-dashboard.html" id="admin-link"><i class="bi bi-speedometer2 me-2"></i>จัดการระบบ (Admin)</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="#" onclick="handleLogout()"><i class="bi bi-box-arrow-right me-2"></i>ออกจากระบบ</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-5 fade-in">
+        <div class="row g-4">
+            <!-- Sidebar Profile -->
+            <div class="col-lg-4">
+                <div class="glass-card p-4 text-center">
+                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80" alt="User" class="rounded-circle mb-3 shadow" width="120" height="120" style="object-fit: cover;">
+                    <h4 class="fw-bold mb-1">สมชาย รักเรียน</h4>
+                    <p class="text-muted small mb-3">student@example.com</p>
+                    <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill"><i class="bi bi-shield-check"></i> ยืนยันตัวตนแล้ว</span>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="d-flex justify-content-between text-center">
+                        <div>
+                            <h5 class="fw-bold mb-0">3</h5>
+                            <span class="small text-muted">คลาสทั้งหมด</span>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-success">2</h5>
+                            <span class="small text-muted">เรียนจบแล้ว</span>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-0 text-warning">1</h5>
+                            <span class="small text-muted">กำลังเรียน</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Booking History -->
+            <div class="col-lg-8">
+                <div class="glass-card p-4 h-100">
+                    <h4 class="fw-bold mb-4"><i class="bi bi-clock-history me-2 text-primary"></i> ประวัติการจองคลาสเรียน</h4>
+                    
+                    <!-- Item 1 (Success) -->
+                    <div class="card border-0 bg-white shadow-sm mb-3 position-relative" id="booking-item-1">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h5 class="fw-bold mb-1">สร้าง Web App ด้วย React & Node.js</h5>
+                                    <p class="text-muted small mb-0"><i class="bi bi-calendar-event me-1"></i> 15 มิ.ย. 2026 | 09:00 - 16:00 น.</p>
+                                </div>
+                                <span class="badge bg-success px-3 py-2 rounded-pill shadow-sm">ชำระเงินสำเร็จ</span>
+                            </div>
+                            <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+                                <span class="fw-bold">ยอดชำระ: ฿2,500</span>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-danger" onclick="cancelBooking('booking-item-1')">ยกเลิกการจอง</button>
+                                    <button class="btn btn-sm btn-primary-custom ms-2"><i class="bi bi-camera-video me-1"></i> เข้าเรียน</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Item 2 (Past) -->
+                    <div class="card border-0 bg-light shadow-sm mb-3">
+                        <div class="card-body p-4">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h5 class="fw-bold mb-1 text-muted">Python for Data Analysis เบื้องต้น</h5>
+                                    <p class="text-muted small mb-0"><i class="bi bi-calendar-event me-1"></i> 10 พ.ค. 2026 | 13:00 - 17:00 น.</p>
+                                </div>
+                                <span class="badge bg-secondary px-3 py-2 rounded-pill">เรียนจบแล้ว</span>
+                            </div>
+                            <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+                                <span class="text-muted small">ยอดชำระ: ฿1,800</span>
+                                <button class="btn btn-sm btn-outline-secondary">ดูใบรับรอง</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/main.js"></script>
+    <script>
+        // Check if just completed payment
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('payment') === 'success') {
+            document.addEventListener('DOMContentLoaded', () => {
+                showToast('ชำระเงินสำเร็จ! ที่นั่งของคุณได้รับการยืนยันแล้ว', 'success');
+            });
+        }
+
+        function cancelBooking(itemId) {
+            if (confirm('คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการจองนี้? ระบบจะคืนเงินตามเงื่อนไขที่กำหนด')) {
+                const item = document.getElementById(itemId);
+                
+                // Change status mock
+                const badge = item.querySelector('.badge');
+                badge.className = 'badge bg-danger px-3 py-2 rounded-pill shadow-sm';
+                badge.innerText = 'ยกเลิกแล้ว';
+                
+                // Remove buttons
+                const btnContainer = item.querySelector('.border-top div');
+                btnContainer.innerHTML = '<span class="text-danger small fw-bold">ดำเนินการยกเลิกสำเร็จ</span>';
+                
+                showToast('ยกเลิกการจองเรียบร้อยแล้ว', 'success');
+            }
+        }
+    </script>
+</body>
+</html>
