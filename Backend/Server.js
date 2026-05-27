@@ -30,13 +30,16 @@ const mapClass = (item) => {
 	};
 };
 
-const mapBooking = (item) => ({
-	...item,
-	user: findUser(item.userId) || null,
-	classInfo: findClass(item.classId)
-		? { id: item.classId, title: findClass(item.classId).title }
-		: null,
-});
+const mapBooking = (item) => {
+	const classItem = findClass(item.classId);
+	return {
+		...item,
+		user: findUser(item.userId) || null,
+		classInfo: classItem
+			? { id: item.classId, title: classItem.title }
+			: null,
+	};
+};
 
 app.get('/api/state', (req, res) => {
 	data.system.updatedAt = new Date().toISOString();
