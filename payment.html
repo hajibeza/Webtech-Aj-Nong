@@ -246,29 +246,35 @@
         // ===========================================
         // ★ ส่วน Gate Layer: ยืนยันการชำระเงิน
         // ===========================================
-        function confirmPayment() {
+        async function confirmPayment() {
             clearInterval(timerId);
 
             const btn = event.target;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> กำลังประมวลผล...';
             btn.disabled = true;
 
-            // ★ หมายเหตุสำคัญ:
-            // ตอนนี้ Backend ยังไม่มี API เส้น PUT /api/bookings/:id
-            // เพื่ออัปเดตสถานะจาก 'pending' → 'paid'
-            // เราจึงทำ "จำลอง" ไว้ก่อน โดย redirect ไปเลย
-            // เมื่อเพื่อน Backend สร้าง API เส้นนี้ให้ → เราค่อยมาเพิ่ม fetch() ตรงนี้
-            //
-            // TODO: เมื่อ Backend พร้อม ให้เปลี่ยน setTimeout ข้างล่างเป็น:
-            // const response = await fetch(`http://localhost:3000/api/bookings/${currentBookingId}`, {
-            //     method: 'PUT',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify({ status: 'paid' })
-            // });
+            try {
+                // ยิง API อัปเดตสถานะใบจองเป็นชำระเงินเรียบร้อย (paid)
+                const response = await fetch(`http://localhost:3000/api/bookings/${currentBookingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'paid' })
+                });
 
-            setTimeout(() => {
+                if (!response.ok) {
+                    throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+                }
+
                 window.location.href = 'profile.html?payment=success';
-            }, 1500);
+
+            } catch (error) {
+                console.error('เกิดข้อผิดพลาดในการยืนยันการชำระเงิน:', error);
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง');
+                btn.innerHTML = 'ยืนยันการชำระเงิน';
+                btn.disabled = false;
+                // สั่งให้นับเวลาถอยหลังต่อหากเกิดข้อผิดพลาด
+                timerId = setInterval(updateTimer, 1000);
+            }
         }
     </script>
 </body>

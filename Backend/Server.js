@@ -103,6 +103,39 @@ app.post('/api/bookings', (req, res) => {
 	res.status(201).json(mapBooking(booking));
 });
 
+app.put('/api/bookings/:id', (req, res) => {
+	const { id } = req.params;
+	const { status } = req.body;
+
+	const booking = data.bookings.find((b) => b.id === id);
+	if (!booking) {
+		return res.status(404).json({ error: 'Booking not found' });
+	}
+
+	// Release class seat if status changes to canceled
+	if (status === 'canceled' && booking.status !== 'canceled') {
+		const cls = findClass(booking.classId);
+		if (cls && cls.seatsTaken > 0) {
+			cls.seatsTaken -= 1;
+		}
+	}
+
+	// Re-reserve seat if status changes from canceled to paid/pending
+	if (status !== 'canceled' && booking.status === 'canceled') {
+		const cls = findClass(booking.classId);
+		if (cls) {
+			cls.seatsTaken += 1;
+		}
+	}
+
+	if (status) {
+		booking.status = status;
+	}
+
+	res.json(mapBooking(booking));
+});
+
+
 app.get('/api/admin/metrics', (req, res) => {
 	const totalRevenue = data.bookings
 		.filter((booking) => booking.status === 'paid')

@@ -319,7 +319,7 @@ async function loadUserBookingHistory() {
             } else if (booking.status === 'pending') {
                 statusBadge = '<span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm">รอชำระเงิน</span>';
                 actionButtons = `
-                    <button class="btn btn-sm btn-outline-danger" onclick="alert('ยกเลิกรายการแล้ว')">ยกเลิกการจอง</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="cancelBooking('${booking.id}')">ยกเลิกการจอง</button>
                     <a href="payment.html?bookingId=${booking.id}" class="btn btn-sm btn-primary-custom ms-2">ชำระเงินต่อ</a>
                 `;
             } else {
@@ -365,3 +365,30 @@ async function loadUserBookingHistory() {
         container.innerHTML = `<div class="text-center text-danger py-5"><p>ไม่สามารถโหลดข้อมูลประวัติการจองได้ในขณะนี้</p></div>`;
     }
 }
+
+// ★ ฟังก์ชันส่งคำร้องขอยกเลิกการจองคลาสเรียนไปยังระบบหลังบ้าน (ข้อ 5)
+async function cancelBooking(bookingId) {
+    const isConfirm = confirm('คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการจองคลาสเรียนนี้?');
+    if (!isConfirm) return;
+
+    try {
+        const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'canceled' })
+        });
+
+        if (!response.ok) {
+            throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+        }
+
+        showToast('ยกเลิกการจองคลาสเรียนสำเร็จแล้วครับ', 'success');
+        
+        // โหลดประวัติการจองใหม่เพื่ออัปเดตหน้าจอแบบเรียลไทม์
+        loadUserBookingHistory();
+
+    } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการยกเลิกการจอง:', error);
+        showToast('ไม่สามารถยกเลิกการจองได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง', 'danger');
+    }
+}
