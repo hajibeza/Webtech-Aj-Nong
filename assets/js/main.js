@@ -33,8 +33,15 @@ document.addEventListener('DOMContentLoaded', () => {
         loadAndDisplayClasses();
     }
 
-    // สั่งให้ฟังก์ชันดึงรายละเอียดคลาสเรียนเดี่ยวทำงานทันทีเมื่อหน้าเว็บโหลดเสร็จ
-    loadSingleClassDetail();
+    // 2. สั่งให้ฟังก์ชันดึงรายละเอียดคลาสเรียนเดี่ยวทำงาน (สำหรับหน้า class-detail.html)
+    if (typeof loadSingleClassDetail === 'function') {
+        loadSingleClassDetail();
+    }
+
+    // 3. สั่งให้ฟังก์ชันดึงประวัติการจองทำงาน (สำหรับหน้า profile.html)
+    if (typeof loadUserBookingHistory === 'function') {
+        loadUserBookingHistory();
+    }
 
 });
 
@@ -210,12 +217,17 @@ async function loadSingleClassDetail() {
         const bookBtn = document.getElementById('btn-book-now');
         if (bookBtn) {
             if (item.seatsAvailable <= 0) {
+                // กรณีที่นั่งเต็ม → ปิดปุ่มเลย
                 bookBtn.innerText = 'ที่นั่งเต็มแล้ว';
-                bookBtn.className = 'btn btn-secondary w-100 py-3 fs-5'; // เปลี่ยนเป็นปุ่มสีเทา
-                bookBtn.removeAttribute('onclick'); // ถอดฟังก์ชันคลิกของเก่าออก
-                bookBtn.style.pointerEvents = 'none'; // ปิดสิทธิ์การเอาเมาส์มากดคลิก
+                bookBtn.className = 'btn btn-secondary w-100 py-3 fs-5';
+                bookBtn.removeAttribute('onclick');
+                bookBtn.style.pointerEvents = 'none';
             } else {
-                // หากที่นั่งยังว่าง ให้ฝังคำสั่งส่งรหัสไอดีคลาสไปเตรียมประมวลผลการจองเมื่อถูกคลิก
+                // ★ กรณีที่นั่งยังว่าง → เปลี่ยนปุ่มจาก "กำลังโหลด" เป็นปุ่มจองจริง
+                bookBtn.innerHTML = '<i class="bi bi-ticket-perforated me-2"></i> จองคลาสนี้ทันที';
+                bookBtn.className = 'btn btn-primary-custom w-100 py-3 fs-5';
+                bookBtn.classList.remove('disabled');
+                // ★ ฝัง classId เข้าไปในปุ่ม → เมื่อ User กด จะส่ง id ไปยิง API ได้ถูกต้อง
                 bookBtn.setAttribute('onclick', `processClassBooking('${item.id}')`);
             }
         }
@@ -252,8 +264,8 @@ async function processClassBooking(classId) {
         // กรณีที่ 1: ดำเนินการสร้างรายการจองสำเร็จ (HTTP Status 201 Created)
         if (response.status === 201) {
             const result = await response.json();
-            alert(`ดำเนินการจองคลาสสำเร็จ! รหัสตั๋วใบจองของคุณคือ: ${result.id}`);
-            window.location.href = 'payment.html'; // ส่งต่อไปหน้าชำระเงินตาม Flow ระบบ
+            // ★ ส่ง bookingId ไปกับ URL เพื่อให้หน้า payment ดึงข้อมูลจองจาก API ได้
+            window.location.href = `payment.html?bookingId=${result.id}`;
         }
         // กรณีที่ 2: ดักจับสเตตัส 409 Conflict เมื่อมีคนอื่นกดตัดหน้าจองที่นั่งสุดท้ายจนเต็มพอดี
         else if (response.status === 409) {
@@ -269,5 +281,96 @@ async function processClassBooking(classId) {
     } catch (error) {
         console.error('เกิดข้อผิดพลาดในการส่ง request การจอง:', error);
         alert('ไม่สามารถเชื่อมต่อระบบหลังบ้านได้ในขณะนี้');
+    }
+}
+
+// ==========================================
+// พาร์ทที่ 3: ระบบดึงประวัติการจองจริงของผู้ใช้ (หน้า Profile แบบแผ่นการ์ด)
+// ==========================================
+
+async function loadUserBookingHistory() {
+    const container = document.getElementById('booking-history-container');
+    // ดักไว้ก่อน: ถ้าหน้านี้ไม่มีพื้นที่แสดงประวัติการจอง ให้หยุดทำงานทันทีเพื่อกันเออร์เรอร์
+    if (!container) return;
+
+    // จำลองรหัสผู้ใช้ u-1 (สมชาย) เพื่อดึงข้อมูลตาม Mock Data ของหลังบ้าน
+    const mockUserId = 'u-1'; 
+
+    try {
+        // ยิง API แบบ GET โดยส่ง Query Parameter เป็น userId เพื่อระบุเจาะจงประวัติของคนนี้
+        const response = await fetch(`http://localhost:3000/api/bookings?userId=${mockUserId}`);
+        const data = await response.json();
+
+        // ★ แก้ไข: API ส่งข้อมูลกลับมาในรูปแบบ { items: [...] } ไม่ใช่ Array ตรงๆ
+        const bookings = data.items || [];
+
+        // เคลียร์พื้นที่ล้างกล่องข้อมูลทดสอบเก่าออกให้หมดก่อน
+        container.innerHTML = '';
+
+        if (bookings.length === 0) {
+            container.innerHTML = `<div class="text-center text-muted py-5"><p><i class="bi bi-folder-x fs-2 d-block mb-2"></i>คุณยังไม่มีประวัติการจองคลาสเรียนในขณะนี้</p></div>`;
+            return;
+        }
+
+        // วนลูปข้อมูลรายการใบจองที่ดึงมาจากหลังบ้านมาประกอบเป็นการ์ด HTML
+        bookings.forEach(booking => {
+            // 1. ดักจัดการสีของป้ายบอกสถานะ (Badge) และสไตล์ของการ์ดตามสเตตัสใบจอง
+            let statusBadge = '';
+            let cardBgClass = 'bg-white';
+            let actionButtons = '';
+
+            if (booking.status === 'paid') {
+                statusBadge = '<span class="badge bg-success px-3 py-2 rounded-pill shadow-sm">ชำระเงินสำเร็จ</span>';
+                actionButtons = `
+                    <button class="btn btn-sm btn-outline-danger" disabled>ยกเลิกการจอง</button>
+                    <button class="btn btn-sm btn-primary-custom ms-2"><i class="bi bi-camera-video me-1"></i> เข้าเรียน</button>
+                `;
+            } else if (booking.status === 'pending') {
+                statusBadge = '<span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm">รอชำระเงิน</span>';
+                actionButtons = `
+                    <button class="btn btn-sm btn-outline-danger" onclick="alert('ยกเลิกรายการแล้ว')">ยกเลิกการจอง</button>
+                    <a href="payment.html?bookingId=${booking.id}" class="btn btn-sm btn-primary-custom ms-2">ชำระเงินต่อ</a>
+                `;
+            } else {
+                statusBadge = `<span class="badge bg-secondary px-3 py-2 rounded-pill">${booking.status}</span>`;
+                cardBgClass = 'bg-light'; // ปรับการ์ดเป็นสีเทาสำหรับเคสเรียนจบแล้วหรือยกเลิก
+                actionButtons = `<button class="btn btn-sm btn-outline-secondary" disabled>เสร็จสิ้น</button>`;
+            }
+
+            // ★ แก้ไข: ดึงชื่อคลาสจาก classInfo.title (ตาม API Structure ของหลังบ้าน)
+            const classTitle = (booking.classInfo && booking.classInfo.title) || 'ไม่ทราบชื่อคลาส';
+            // ★ แก้ไข: ใช้ field "amount" แทน "price" (ตาม API Structure ของหลังบ้าน)
+            const bookingAmount = booking.amount || 0;
+
+            // 2. ประกอบร่างการ์ด HTML ด้วยรูปแบบ (UI) ดั้งเดิมของน้อง
+            const itemHtml = `
+                <div class="card border-0 ${cardBgClass} shadow-sm mb-3 position-relative">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 class="fw-bold mb-1">${classTitle}</h5>
+                                <p class="text-muted small mb-0">
+                                    <i class="bi bi-ticket-perforated me-1"></i> รหัสใบจอง: ${booking.id}
+                                </p>
+                            </div>
+                            ${statusBadge}
+                        </div>
+                        <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">ยอดชำระ: ฿${bookingAmount.toLocaleString()}</span>
+                            <div>
+                                ${actionButtons}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 3. แปะแผ่นการ์ดใบจองจริงเรียงลงบนหน้าเว็บ
+            container.insertAdjacentHTML('beforeend', itemHtml);
+        });
+
+    } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการโหลดประวัติการจอง:', error);
+        container.innerHTML = `<div class="text-center text-danger py-5"><p>ไม่สามารถโหลดข้อมูลประวัติการจองได้ในขณะนี้</p></div>`;
     }
 }
