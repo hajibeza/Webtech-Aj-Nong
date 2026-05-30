@@ -47,6 +47,8 @@
         function login(isAdminRole) {
             event.preventDefault();
             localStorage.setItem('isLoggedIn', 'true');
+            // ★ เก็บ userId ไว้ใน localStorage เพื่อให้ Gate Layer ดึงไปใช้ยิง API ได้
+            localStorage.setItem('userId', 'u-1');
             if (isAdminRole) {
                 localStorage.setItem('isAdmin', 'true');
                 window.location.href = 'admin-dashboard.html';

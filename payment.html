@@ -87,17 +87,18 @@
                         <div class="glass-card p-4 h-100">
                             <h5 class="fw-bold mb-4">สรุปการสั่งซื้อ</h5>
                             
+                            <!-- ★ ส่วนแสดงข้อมูลคลาส — จะถูก JS เติมข้อมูลจาก API -->
                             <div class="d-flex align-items-center mb-3 pb-3 border-bottom">
-                                <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=80&q=80" class="rounded me-3" alt="Class">
+                                <img id="payment-class-img" src="" class="rounded me-3" alt="Class" width="80">
                                 <div>
-                                    <p class="mb-0 fw-bold small">สร้าง Web App ด้วย React & Node.js</p>
-                                    <p class="text-muted small mb-0">15 มิ.ย. 2026</p>
+                                    <p id="payment-class-title" class="mb-0 fw-bold small">กำลังโหลด...</p>
+                                    <p id="payment-class-date" class="text-muted small mb-0">-</p>
                                 </div>
                             </div>
 
                             <div class="d-flex justify-content-between mb-2">
                                 <span class="text-muted">ราคาคลาส</span>
-                                <span>฿2,500</span>
+                                <span id="payment-price">-</span>
                             </div>
                             <div class="d-flex justify-content-between mb-3 pb-3 border-bottom">
                                 <span class="text-muted">ส่วนลด</span>
@@ -106,7 +107,14 @@
 
                             <div class="d-flex justify-content-between align-items-center mb-0">
                                 <span class="fw-bold fs-5">ยอดรวมทั้งสิ้น</span>
-                                <span class="fw-bold fs-4 text-primary">฿2,500</span>
+                                <span id="payment-total" class="fw-bold fs-4 text-primary">-</span>
+                            </div>
+
+                            <!-- ★ แสดงรหัส Booking ให้ User ทราบ -->
+                            <div class="mt-3 pt-3 border-top">
+                                <p id="payment-booking-id" class="text-muted small mb-0">
+                                    <i class="bi bi-ticket-perforated me-1"></i> รหัสใบจอง: กำลังโหลด...
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -131,26 +139,21 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/main.js"></script>
     <script>
-        // Timer Logic
-        let timeLeft = 300; // 5 minutes in seconds
+        // ===========================================
+        // ส่วน Timer — นับถอยหลัง 5 นาที (ยังคงเหมือนเดิม)
+        // ===========================================
+        let timeLeft = 300;
         const timerElement = document.getElementById('timer');
         let timerId;
 
         function updateTimer() {
             const minutes = Math.floor(timeLeft / 60);
             let seconds = timeLeft % 60;
-            
-            if (seconds < 10) {
-                seconds = '0' + seconds;
-            }
-            
+            if (seconds < 10) seconds = '0' + seconds;
             timerElement.textContent = `0${minutes}:${seconds}`;
-            
-            if (timeLeft <= 60) {
-                timerElement.classList.add('fade-in'); // simple pulse effect mock
-            }
-
+            if (timeLeft <= 60) timerElement.classList.add('fade-in');
             if (timeLeft === 0) {
                 clearInterval(timerId);
                 const timeoutModal = new bootstrap.Modal(document.getElementById('timeoutModal'));
@@ -159,19 +162,119 @@
                 timeLeft--;
             }
         }
-
         timerId = setInterval(updateTimer, 1000);
 
-        function confirmPayment() {
+        // ===========================================
+        // ★ ส่วน Gate Layer: ดึงข้อมูล Booking จาก API มาแสดงผลจริง
+        // ===========================================
+
+        // ★ ตัวแปรเก็บ bookingId ที่อ่านจาก URL เพื่อใช้ตอน confirm ด้วย
+        let currentBookingId = null;
+
+        async function loadPaymentDetails() {
+            // ขั้นที่ 1: อ่าน bookingId จาก URL Parameter
+            // เช่น payment.html?bookingId=BK-004 → ได้ค่า "BK-004"
+            const urlParams = new URLSearchParams(window.location.search);
+            const bookingId = urlParams.get('bookingId');
+
+            if (!bookingId) {
+                alert('ไม่พบรหัสใบจอง กรุณาทำรายการจองใหม่');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            // เก็บไว้ใช้ตอน confirmPayment()
+            currentBookingId = bookingId;
+
+            try {
+                // ขั้นที่ 2: ยิง API ดึงรายการจองทั้งหมดของ user
+                // เนื่องจาก Backend ยังไม่มี GET /api/bookings/:id (เส้นดึงเดี่ยว)
+                // เราจึงใช้วิธี "ดึงทั้งหมดมาแล้วกรองหาเอง" ฝั่ง Gate
+                const userId = getCurrentUserId();
+                const response = await fetch(`${API_BASE_URL}/api/bookings?userId=${userId}`);
+
+                if (!response.ok) {
+                    throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+                }
+
+                const data = await response.json();
+                const bookings = data.items || [];
+
+                // ขั้นที่ 3: กรองหา booking ที่ตรงกับ bookingId ที่เราต้องการ
+                const booking = bookings.find(b => b.id === bookingId);
+
+                if (!booking) {
+                    alert('ไม่พบข้อมูลใบจองนี้ในระบบ');
+                    window.location.href = 'index.html';
+                    return;
+                }
+
+                // ขั้นที่ 4: ดึงข้อมูลคลาสเรียนที่เกี่ยวข้องมาเพิ่ม (เพื่อได้รูปภาพ, วันที่)
+                let classData = null;
+                if (booking.classInfo && booking.classInfo.id) {
+                    const classResponse = await fetch(`${API_BASE_URL}/api/classes/${booking.classInfo.id}`);
+                    if (classResponse.ok) {
+                        classData = await classResponse.json();
+                    }
+                }
+
+                // ขั้นที่ 5: เอาข้อมูลจริงไปอัปเดต HTML บนหน้า payment
+                const classTitle = (booking.classInfo && booking.classInfo.title) || 'ไม่ทราบชื่อคลาส';
+                const amount = booking.amount || 0;
+
+                document.getElementById('payment-class-title').textContent = classTitle;
+                document.getElementById('payment-price').textContent = `฿${amount.toLocaleString()}`;
+                document.getElementById('payment-total').textContent = `฿${amount.toLocaleString()}`;
+                document.getElementById('payment-booking-id').innerHTML =
+                    `<i class="bi bi-ticket-perforated me-1"></i> รหัสใบจอง: ${booking.id}`;
+
+                // ถ้าดึงข้อมูลคลาสสำเร็จ → ใส่รูปภาพและวันที่
+                if (classData) {
+                    document.getElementById('payment-class-img').src = classData.imageUrl;
+                    document.getElementById('payment-class-date').textContent = classData.date;
+                }
+
+            } catch (error) {
+                console.error('เกิดข้อผิดพลาดในการโหลดข้อมูลการชำระเงิน:', error);
+                document.getElementById('payment-class-title').textContent = 'ไม่สามารถโหลดข้อมูลได้';
+            }
+        }
+
+        // ★ สั่งให้ฟังก์ชันดึงข้อมูลทำงานทันทีเมื่อหน้าเว็บโหลดเสร็จ
+        loadPaymentDetails();
+
+        // ===========================================
+        // ★ ส่วน Gate Layer: ยืนยันการชำระเงิน
+        // ===========================================
+        async function confirmPayment() {
             clearInterval(timerId);
-            // Mock payment success
+
             const btn = event.target;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> กำลังประมวลผล...';
             btn.disabled = true;
-            
-            setTimeout(() => {
+
+            try {
+                // ยิง API อัปเดตสถานะใบจองเป็นชำระเงินเรียบร้อย (paid)
+                const response = await fetch(`${API_BASE_URL}/api/bookings/${currentBookingId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: 'paid' })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+                }
+
                 window.location.href = 'profile.html?payment=success';
-            }, 1500);
+
+            } catch (error) {
+                console.error('เกิดข้อผิดพลาดในการยืนยันการชำระเงิน:', error);
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง');
+                btn.innerHTML = 'ยืนยันการชำระเงิน';
+                btn.disabled = false;
+                // สั่งให้นับเวลาถอยหลังต่อหากเกิดข้อผิดพลาด
+                timerId = setInterval(updateTimer, 1000);
+            }
         }
     </script>
 </body>

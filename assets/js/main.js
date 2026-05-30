@@ -1,3 +1,35 @@
+// ==========================================
+// ★ ตัวแปรกลาง (Central Config) สำหรับ API/State Layer
+// ==========================================
+
+// ★ API Base URL — เปลี่ยนตรงนี้จุดเดียว ส่งผลทั้งโปรเจค
+const API_BASE_URL = 'http://localhost:3000';
+
+// ★ พจนานุกรมแปลข้อมูลผู้สอน (Instructor Mapping) เพื่อแปลงชื่อย่อจาก API เป็นข้อมูลโปรไฟล์ตัวเต็ม
+const INSTRUCTOR_MAP = {
+    'Somkiat': {
+        name: 'อ. สมเกียรติ โค้ดดิ้ง',
+        role: 'Senior Fullstack Developer',
+        image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=50&q=80'
+    },
+    'Wittaya': {
+        name: 'อ. วิทยา ดาต้าซายน์',
+        role: 'Data Scientist & Analyst',
+        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=50&q=80'
+    },
+    'Praew': {
+        name: 'อ. แพรว ยูเอ็กซ์ยูไอ',
+        role: 'Lead UX/UI Designer',
+        image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=50&q=80'
+    }
+};
+
+// ★ ฟังก์ชันดึง userId ที่ล็อกอินอยู่จาก localStorage
+// แทนที่จะฮาร์ดโค้ด 'u-1' กระจายไปทั่ว เราเรียกฟังก์ชันนี้แทน
+function getCurrentUserId() {
+    return localStorage.getItem('userId') || 'u-1';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize all Bootstrap Toasts
     var toastElList = [].slice.call(document.querySelectorAll('.toast'))
@@ -8,17 +40,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check login state (mock)
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     const isAdmin = localStorage.getItem('isAdmin') === 'true';
-    
+
     // Update navbar based on login state
     const userMenu = document.getElementById('user-menu');
     const loginBtn = document.getElementById('login-btn');
     const adminLink = document.getElementById('admin-link');
-    
+
     if (userMenu && loginBtn) {
         if (isLoggedIn) {
             loginBtn.classList.add('d-none');
             userMenu.classList.remove('d-none');
-            
+
             if (isAdmin && adminLink) {
                 adminLink.classList.remove('d-none');
             }
@@ -27,12 +59,29 @@ document.addEventListener('DOMContentLoaded', () => {
             userMenu.classList.add('d-none');
         }
     }
+
+    // สั่งให้ฟังก์ชันดึงข้อมูลคลาสเรียนทั้งหมดทำงาน (ถ้ามีฟังก์ชันนี้อยู่ในไฟล์)
+    if (typeof loadAndDisplayClasses === 'function') {
+        loadAndDisplayClasses();
+    }
+
+    // 2. สั่งให้ฟังก์ชันดึงรายละเอียดคลาสเรียนเดี่ยวทำงาน (สำหรับหน้า class-detail.html)
+    if (typeof loadSingleClassDetail === 'function') {
+        loadSingleClassDetail();
+    }
+
+    // 3. สั่งให้ฟังก์ชันดึงประวัติการจองทำงาน (สำหรับหน้า profile.html)
+    if (typeof loadUserBookingHistory === 'function') {
+        loadUserBookingHistory();
+    }
+
 });
 
 // Function to handle mock logout
 function handleLogout() {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('isAdmin');
+    localStorage.removeItem('userId');
     window.location.href = 'index.html';
 }
 
@@ -47,10 +96,10 @@ function showToast(message, type = 'success') {
         toastContainer.style.zIndex = '1100';
         document.body.appendChild(toastContainer);
     }
-    
+
     const toastId = 'toast-' + Date.now();
     const bgClass = type === 'success' ? 'bg-success' : (type === 'danger' ? 'bg-danger' : 'bg-primary');
-    
+
     const toastHTML = `
         <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0 fade-in" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
@@ -61,12 +110,12 @@ function showToast(message, type = 'success') {
             </div>
         </div>
     `;
-    
+
     toastContainer.insertAdjacentHTML('beforeend', toastHTML);
     const toastElement = document.getElementById(toastId);
     const bsToast = new bootstrap.Toast(toastElement, { delay: 3000 });
     bsToast.show();
-    
+
     // Remove from DOM after hide
     toastElement.addEventListener('hidden.bs.toast', () => {
         toastElement.remove();
@@ -78,9 +127,23 @@ async function loadAndDisplayClasses() {
     const container = document.getElementById('class-list-container');
     if (!container) return; // ดักไว้เผื่อกรณีที่โหลดหน้าอื่นที่ไม่มีคอนเทนเนอร์นี้ จะได้ไม่เกิด Error ใน Console
 
+    // ★ แสดง Loading Spinner หมุนโหลดตรงกลางก่อนเริ่มยิง API (ข้อ 7)
+    container.innerHTML = `
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">กำลังโหลด...</span>
+            </div>
+            <p class="text-muted mt-3 fw-semibold">กำลังโหลดข้อมูลคลาสเรียนเรียนออนไลน์...</p>
+        </div>
+    `;
+
     try {
         // ยิงไปหา API เส้นของเพื่อนหลังบ้าน
-        const response = await fetch('http://localhost:3000/api/classes');
+        const response = await fetch(`${API_BASE_URL}/api/classes`);
+        // ★ เช็คสถานะ response ก่อนอ่าน JSON เพื่อป้องกันกรณี Backend ส่ง 500 กลับมา
+        if (!response.ok) {
+            throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+        }
         const data = await response.json();
 
         // ดึง Array ของ classes ออกมาจาก data.items (ตามที่เพื่อนตั้ง API Structure ไว้)
@@ -102,7 +165,7 @@ async function loadAndDisplayClasses() {
             const badgeText = isFull ? 'เต็มแล้ว' : `${item.seatsTaken}/${item.capacity}`;
 
             // Logic ปรับแต่งปุ่มกด
-            const buttonHtml = isFull 
+            const buttonHtml = isFull
                 ? `<button class="btn btn-secondary" disabled>ที่นั่งเต็ม</button>`
                 : `<a href="class-detail.html?id=${item.id}" class="btn btn-primary-custom">ดูรายละเอียด</a>`;
 
@@ -138,11 +201,338 @@ async function loadAndDisplayClasses() {
     }
 }
 
-// 2. เรียกใช้งานฟังก์ชันเมื่อหน้าเว็บทำงานสำเร็จ
-document.addEventListener('DOMContentLoaded', () => {
-    // โค้ดของเก่าน้องที่เช็กสเตตัสล็อกอิน...
-    // ...
-    
-    // เรียกใช้ฟังก์ชันดึงคลาสเรียนที่เพิ่งเขียนเสร็จข้างบน
-    loadAndDisplayClasses();
-});
+// ==========================================
+// พาร์ทที่ 2: ระบบดึงรายละเอียดและกดจองคลาสเรียน (หน้ารายละเอียด)
+// ==========================================
+
+// 1. ฟังก์ชันดึงข้อมูลรายละเอียดของคลาสเรียนที่ผู้ใช้เลือกมาแสดงผล
+async function loadSingleClassDetail() {
+    // แกะรหัสไอดีคลาสเรียนออกจาก URL Parameter (ตัวอย่าง: class-detail.html?id=cls-1)
+    const urlParams = new URLSearchParams(window.location.search);
+    const classId = urlParams.get('id');
+
+    // ตรวจสอบเบื้องต้น: ถ้าหน้านี้ไม่มีการส่งไอดีมา หรือไม่มีแท็กชื่อคลาส ให้หยุดทำงานทันที
+    if (!classId || !document.getElementById('detail-title')) return;
+
+    // ★ แสดง Loading Spinner เล็กๆ ประคอง UX สำหรับหัวข้อเรียนรู้ระหว่างรอ API (ข้อ 7)
+    const topicsContainer = document.getElementById('detail-topics');
+    if (topicsContainer) {
+        topicsContainer.innerHTML = `
+            <div class="py-3 text-muted">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                กำลังโหลดรายละเอียดหัวข้อเรียนรู้ออนไลน์...
+            </div>
+        `;
+    }
+
+    try {
+        // ส่งคำร้องขอร้องข้อมูลไปยัง API รายคลาสของฝั่งหลังบ้าน
+        const response = await fetch(`${API_BASE_URL}/api/classes/${classId}`);
+
+        // ★ เช็คสถานะ response ทั้งหมด (รวม 404 และ 500)
+        if (!response.ok) {
+            if (response.status === 404) {
+                alert('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ');
+                window.location.href = 'index.html';
+                return;
+            }
+            throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+        }
+
+        const item = await response.json();
+
+        // นำข้อมูลจริงที่หลังบ้านส่งมา นำไปกระจายใส่ตาม id แท็กต่างๆ ที่เราตั้งไว้ใน HTML
+        document.getElementById('detail-img').src = item.imageUrl;
+        document.getElementById('detail-title').innerText = item.title;
+        document.getElementById('detail-desc').innerText = item.description;
+        document.getElementById('detail-price').innerText = `฿${item.price.toLocaleString()}`;
+        document.getElementById('detail-seats-text').innerText = `${item.seatsTaken}/${item.capacity}`;
+
+        // [เพิ่มเติมใหม่] อัปเดต Breadcrumb, Category และวันเวลาจาก API
+        const breadcrumbEl = document.getElementById('detail-breadcrumb');
+        if (breadcrumbEl) breadcrumbEl.innerText = item.title;
+
+        const categoryEl = document.getElementById('detail-category');
+        if (categoryEl) categoryEl.innerText = item.category;
+
+        const dateEl = document.getElementById('detail-date');
+        if (dateEl) {
+            const classDate = new Date(item.date);
+            const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+            const formattedDate = `${classDate.getDate()} ${thaiMonths[classDate.getMonth()]} ${classDate.getFullYear() + 543}`;
+            dateEl.innerHTML = `<i class="bi bi-calendar-event me-2"></i> ${formattedDate}`;
+        }
+
+        const timeEl = document.getElementById('detail-time');
+        if (timeEl) {
+            timeEl.innerHTML = `<i class="bi bi-clock me-2"></i> ${item.timeStart} - ${item.timeEnd} น.`;
+        }
+
+        // [เพิ่มเติมใหม่] อัปเดตตัวเตือนที่นั่งเหลือตามจริงอย่างยืดหยุ่น
+        const seatsWarningEl = document.getElementById('detail-seats-warning');
+        if (seatsWarningEl) {
+            if (item.seatsAvailable <= 0) {
+                seatsWarningEl.innerHTML = '<i class="bi bi-exclamation-circle-fill text-danger me-2"></i>ขออภัย คลาสเรียนนี้เต็มแล้ว';
+                seatsWarningEl.className = 'small text-danger mt-2 mb-0';
+            } else if (item.seatsAvailable <= 5) {
+                seatsWarningEl.innerHTML = `<i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>เหลืออีกเพียง ${item.seatsAvailable} ที่นั่งสุดท้าย!`;
+                seatsWarningEl.className = 'small text-danger mt-2 mb-0';
+            } else {
+                seatsWarningEl.innerHTML = `<i class="bi bi-check-circle-fill text-success me-2"></i>เปิดรับสมัครปกติ (เหลือ ${item.seatsAvailable} ที่นั่ง)`;
+                seatsWarningEl.className = 'small text-success mt-2 mb-0';
+            }
+        }
+
+        // [เพิ่มเติมใหม่] อัปเดตข้อมูลและโปรไฟล์ของผู้สอนแบบ Dynamic
+        const instructorInfo = INSTRUCTOR_MAP[item.instructor] || {
+            name: `อ. ${item.instructor}`,
+            role: 'วิทยากรผู้เชี่ยวชาญ',
+            image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=50&q=80'
+        };
+
+        const instructorImgEl = document.getElementById('detail-instructor-img');
+        if (instructorImgEl) {
+            instructorImgEl.src = instructorInfo.image;
+            instructorImgEl.alt = instructorInfo.name;
+        }
+
+        const instructorNameEl = document.getElementById('detail-instructor-name');
+        if (instructorNameEl) instructorNameEl.innerText = instructorInfo.name;
+
+        const instructorRoleEl = document.getElementById('detail-instructor-role');
+        if (instructorRoleEl) instructorRoleEl.innerText = instructorInfo.role;
+
+        // คำนวณสัดส่วนเปอร์เซ็นต์ที่นั่งเพื่อนำไปปรับความยาวของหลอด Progress Bar แบบเรียลไทม์
+        const progressPercent = (item.seatsTaken / item.capacity) * 100;
+        document.getElementById('detail-seats-progress').style.width = `${progressPercent}%`;
+
+        // ทำการลูปสร้างรายการสิ่งที่จะได้เรียนรู้ (Topics) แปะลงในหน้าเว็บ
+        const topicsContainer = document.getElementById('detail-topics');
+        if (topicsContainer) {
+            topicsContainer.innerHTML = ''; // ล้างรายการสมมุติเดิมใน HTML ออกก่อน
+            item.topics.forEach(topic => {
+                topicsContainer.insertAdjacentHTML('beforeend', `
+                    <li class="list-group-item bg-transparent px-0">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i> ${topic}
+                    </li>
+                `);
+            });
+        }
+
+        // ตรวจสอบสถานะปุ่มจอง: หากที่นั่งเต็มแล้ว ให้ทำการปิดการใช้งานปุ่มทันที
+        const bookBtn = document.getElementById('btn-book-now');
+        if (bookBtn) {
+            if (item.seatsAvailable <= 0) {
+                // กรณีที่นั่งเต็ม → ปิดปุ่มเลย
+                bookBtn.innerText = 'ที่นั่งเต็มแล้ว';
+                bookBtn.className = 'btn btn-secondary w-100 py-3 fs-5';
+                bookBtn.removeAttribute('onclick');
+                bookBtn.style.pointerEvents = 'none';
+            } else {
+                // ★ กรณีที่นั่งยังว่าง → เปลี่ยนปุ่มจาก "กำลังโหลด" เป็นปุ่มจองจริง
+                bookBtn.innerHTML = '<i class="bi bi-ticket-perforated me-2"></i> จองคลาสนี้ทันที';
+                bookBtn.className = 'btn btn-primary-custom w-100 py-3 fs-5';
+                bookBtn.classList.remove('disabled');
+                // ★ ฝัง classId เข้าไปในปุ่ม → เมื่อ User กด จะส่ง id ไปยิง API ได้ถูกต้อง
+                bookBtn.setAttribute('onclick', `processClassBooking('${item.id}')`);
+            }
+        }
+
+    } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการดึงข้อมูลรายละเอียดคลาส:', error);
+    }
+}
+
+// 2. ฟังก์ชันส่งข้อมูลคำร้องขอจองคลาสเรียนไปยังระบบหลังบ้าน
+async function processClassBooking(classId) {
+    // ตรวจสอบสิทธิ์: ดึงสถานะการล็อกอินปัจจุบันจาก localStorage
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (!isLoggedIn) {
+        alert('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ');
+        window.location.href = 'login.html'; // ส่งไปหน้าล็อกอิน
+        return;
+    }
+
+    // ★ ดึง userId จาก localStorage แทนการฮาร์ดโค้ด (localStorage continuity)
+    const userId = getCurrentUserId();
+
+    try {
+        // ยิงคำร้องขอแบบ POST ส่งข้อมูลสิทธิ์ไปสมัครเรียนกับหลังบ้าน
+        const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                classId: classId,
+                userId: userId
+            })
+        });
+
+        // กรณีที่ 1: ดำเนินการสร้างรายการจองสำเร็จ (HTTP Status 201 Created)
+        if (response.status === 201) {
+            const result = await response.json();
+            // ★ ส่ง bookingId ไปกับ URL เพื่อให้หน้า payment ดึงข้อมูลจองจาก API ได้
+            window.location.href = `payment.html?bookingId=${result.id}`;
+        }
+        // กรณีที่ 2: ดักจับสเตตัส 409 Conflict เมื่อมีคนอื่นกดตัดหน้าจองที่นั่งสุดท้ายจนเต็มพอดี
+        else if (response.status === 409) {
+            alert('ขออภัยด้วยครับ! มีผู้ใช้อื่นทำรายการจองที่นั่งสุดท้ายตัดหน้าไปเมื่อสักครู่ คลาสเรียนนี้เต็มแล้ว');
+            window.location.reload(); // รีเฟรชหน้าจอเพื่ออัปเดตสถานะปุ่มเป็นที่นั่งเต็ม
+        }
+        // กรณีเออร์เรอร์อื่นๆ จากระบบหลังบ้าน
+        else {
+            const errData = await response.json();
+            alert(`ไม่สามารถทำรายการได้: ${errData.error || 'ระบบขัดข้อง'}`);
+        }
+
+    } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการส่ง request การจอง:', error);
+        alert('ไม่สามารถเชื่อมต่อระบบหลังบ้านได้ในขณะนี้');
+    }
+}
+
+// ==========================================
+// พาร์ทที่ 3: ระบบดึงประวัติการจองจริงของผู้ใช้ (หน้า Profile แบบแผ่นการ์ด)
+// ==========================================
+
+async function loadUserBookingHistory() {
+    const container = document.getElementById('booking-history-container');
+    // ดักไว้ก่อน: ถ้าหน้านี้ไม่มีพื้นที่แสดงประวัติการจอง ให้หยุดทำงานทันทีเพื่อกันเออร์เรอร์
+    if (!container) return;
+
+    // ★ แสดง Loading Spinner ตรงกลางหน้าประวัติการจองก่อนเริ่มยิง API (ข้อ 7)
+    container.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;">
+                <span class="visually-hidden">กำลังโหลด...</span>
+            </div>
+            <p class="text-muted mt-2 fw-semibold">กำลังเชื่อมต่อข้อมูลการจองของคุณ...</p>
+        </div>
+    `;
+
+    // ★ ดึง userId จาก localStorage แทนการฮาร์ดโค้ด (localStorage continuity)
+    const userId = getCurrentUserId();
+
+    try {
+        // ยิง API แบบ GET โดยส่ง Query Parameter เป็น userId เพื่อระบุเจาะจงประวัติของคนนี้
+        const response = await fetch(`${API_BASE_URL}/api/bookings?userId=${userId}`);
+        // ★ เช็คสถานะ response ก่อนอ่าน JSON
+        if (!response.ok) {
+            throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+        }
+        const data = await response.json();
+
+        // ★ แก้ไข: API ส่งข้อมูลกลับมาในรูปแบบ { items: [...] } ไม่ใช่ Array ตรงๆ
+        const bookings = data.items || [];
+
+        // ★ [เพิ่มเติมใหม่สำหรับข้อ 12] คำนวณสถิติจากประวัติการจองจริง
+        const activeBookings = bookings.filter(b => b.status !== 'canceled');
+        const paidBookings = bookings.filter(b => b.status === 'paid');
+        const pendingBookings = bookings.filter(b => b.status === 'pending');
+
+        // ส่งตัวเลขไปอัปเดตบนหน้าเว็บจริงแบบเรียลไทม์
+        const statTotalEl = document.getElementById('stat-total');
+        if (statTotalEl) statTotalEl.innerText = activeBookings.length;
+
+        const statPaidEl = document.getElementById('stat-paid');
+        if (statPaidEl) statPaidEl.innerText = paidBookings.length;
+
+        const statPendingEl = document.getElementById('stat-pending');
+        if (statPendingEl) statPendingEl.innerText = pendingBookings.length;
+
+        // เคลียร์พื้นที่ล้างกล่องข้อมูลทดสอบเก่าออกให้หมดก่อน
+        container.innerHTML = '';
+
+        if (bookings.length === 0) {
+            container.innerHTML = `<div class="text-center text-muted py-5"><p><i class="bi bi-folder-x fs-2 d-block mb-2"></i>คุณยังไม่มีประวัติการจองคลาสเรียนในขณะนี้</p></div>`;
+            return;
+        }
+
+        // วนลูปข้อมูลรายการใบจองที่ดึงมาจากหลังบ้านมาประกอบเป็นการ์ด HTML
+        bookings.forEach(booking => {
+            // 1. ดักจัดการสีของป้ายบอกสถานะ (Badge) และสไตล์ของการ์ดตามสเตตัสใบจอง
+            let statusBadge = '';
+            let cardBgClass = 'bg-white';
+            let actionButtons = '';
+
+            if (booking.status === 'paid') {
+                statusBadge = '<span class="badge bg-success px-3 py-2 rounded-pill shadow-sm">ชำระเงินสำเร็จ</span>';
+                actionButtons = `
+                    <button class="btn btn-sm btn-outline-danger" disabled>ยกเลิกการจอง</button>
+                    <button class="btn btn-sm btn-primary-custom ms-2"><i class="bi bi-camera-video me-1"></i> เข้าเรียน</button>
+                `;
+            } else if (booking.status === 'pending') {
+                statusBadge = '<span class="badge bg-warning text-dark px-3 py-2 rounded-pill shadow-sm">รอชำระเงิน</span>';
+                actionButtons = `
+                    <button class="btn btn-sm btn-outline-danger" onclick="cancelBooking('${booking.id}')">ยกเลิกการจอง</button>
+                    <a href="payment.html?bookingId=${booking.id}" class="btn btn-sm btn-primary-custom ms-2">ชำระเงินต่อ</a>
+                `;
+            } else {
+                statusBadge = `<span class="badge bg-secondary px-3 py-2 rounded-pill">${booking.status}</span>`;
+                cardBgClass = 'bg-light'; // ปรับการ์ดเป็นสีเทาสำหรับเคสเรียนจบแล้วหรือยกเลิก
+                actionButtons = `<button class="btn btn-sm btn-outline-secondary" disabled>เสร็จสิ้น</button>`;
+            }
+
+            // ★ แก้ไข: ดึงชื่อคลาสจาก classInfo.title (ตาม API Structure ของหลังบ้าน)
+            const classTitle = (booking.classInfo && booking.classInfo.title) || 'ไม่ทราบชื่อคลาส';
+            // ★ แก้ไข: ใช้ field "amount" แทน "price" (ตาม API Structure ของหลังบ้าน)
+            const bookingAmount = booking.amount || 0;
+
+            // 2. ประกอบร่างการ์ด HTML ด้วยรูปแบบ (UI) ดั้งเดิมของน้อง
+            const itemHtml = `
+                <div class="card border-0 ${cardBgClass} shadow-sm mb-3 position-relative">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <h5 class="fw-bold mb-1">${classTitle}</h5>
+                                <p class="text-muted small mb-0">
+                                    <i class="bi bi-ticket-perforated me-1"></i> รหัสใบจอง: ${booking.id}
+                                </p>
+                            </div>
+                            ${statusBadge}
+                        </div>
+                        <div class="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
+                            <span class="fw-bold">ยอดชำระ: ฿${bookingAmount.toLocaleString()}</span>
+                            <div>
+                                ${actionButtons}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 3. แปะแผ่นการ์ดใบจองจริงเรียงลงบนหน้าเว็บ
+            container.insertAdjacentHTML('beforeend', itemHtml);
+        });
+
+    } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการโหลดประวัติการจอง:', error);
+        container.innerHTML = `<div class="text-center text-danger py-5"><p>ไม่สามารถโหลดข้อมูลประวัติการจองได้ในขณะนี้</p></div>`;
+    }
+}
+
+// ★ ฟังก์ชันส่งคำร้องขอยกเลิกการจองคลาสเรียนไปยังระบบหลังบ้าน (ข้อ 5)
+async function cancelBooking(bookingId) {
+    const isConfirm = confirm('คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการจองคลาสเรียนนี้?');
+    if (!isConfirm) return;
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: 'canceled' })
+        });
+
+        if (!response.ok) {
+            throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+        }
+
+        showToast('ยกเลิกการจองคลาสเรียนสำเร็จแล้วครับ', 'success');
+        
+        // โหลดประวัติการจองใหม่เพื่ออัปเดตหน้าจอแบบเรียลไทม์
+        loadUserBookingHistory();
+
+    } catch (error) {
+        console.error('เกิดข้อผิดพลาดในการยกเลิกการจอง:', error);
+        showToast('ไม่สามารถยกเลิกการจองได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง', 'danger');
+    }
+}

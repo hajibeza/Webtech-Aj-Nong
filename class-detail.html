@@ -54,27 +54,27 @@
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="index.html" class="text-decoration-none">หน้าแรก</a></li>
-                <li class="breadcrumb-item active" aria-current="page">สร้าง Web App ด้วย React & Node.js</li>
+                <li class="breadcrumb-item active" aria-current="page" id="detail-breadcrumb">...</li>
             </ol>
         </nav>
 
         <div class="row g-5">
             <!-- Left Content: Image and Details -->
             <div class="col-lg-8">
-                <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80" class="img-fluid rounded-4 mb-4 shadow" alt="Class Image">
+                <img id="detail-img" src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=1200&q=80" class="img-fluid rounded-4 mb-4 shadow" alt="Class Image">
                 
-                <h1 class="fw-bold mb-3">สร้าง Web App ด้วย React & Node.js (Fullstack)</h1>
+                <h1 id="detail-title" class="fw-bold mb-3">สร้าง Web App ด้วย React & Node.js (Fullstack)</h1>
                 
                 <div class="d-flex flex-wrap gap-3 mb-4 text-muted">
-                    <span class="badge bg-primary-subtle text-primary px-3 py-2 fs-6 rounded-pill">Programming</span>
-                    <span class="d-flex align-items-center"><i class="bi bi-calendar-event me-2"></i> 15 มิถุนายน 2026</span>
-                    <span class="d-flex align-items-center"><i class="bi bi-clock me-2"></i> 09:00 - 16:00 น.</span>
+                    <span class="badge bg-primary-subtle text-primary px-3 py-2 fs-6 rounded-pill" id="detail-category">...</span>
+                    <span class="d-flex align-items-center" id="detail-date"><i class="bi bi-calendar-event me-2"></i> ...</span>
+                    <span class="d-flex align-items-center" id="detail-time"><i class="bi bi-clock me-2"></i> ...</span>
                     <span class="d-flex align-items-center"><i class="bi bi-geo-alt me-2"></i> เรียนออนไลน์ (Zoom)</span>
                 </div>
 
                 <div class="glass-card p-4 mb-4">
                     <h4 class="fw-bold mb-3">รายละเอียดคลาสเรียน</h4>
-                    <p>เรียนรู้การสร้าง Web Application ตั้งแต่เริ่มต้นจนสามารถ Deploy ขึ้น Server ได้จริง โดยใช้เทคโนโลยียอดนิยมอย่าง React สำหรับ Frontend และ Node.js (Express) สำหรับ Backend คอร์สนี้เน้นลงมือปฏิบัติจริง (Workshop-based) เหมาะสำหรับผู้เริ่มต้นที่มีพื้นฐาน HTML/JS มาบ้าง</p>
+                    <p id="detail-desc" >เรียนรู้การสร้าง Web Application ตั้งแต่เริ่มต้นจนสามารถ Deploy ขึ้น Server ได้จริง โดยใช้เทคโนโลยียอดนิยมอย่าง React สำหรับ Frontend และ Node.js (Express) สำหรับ Backend คอร์สนี้เน้นลงมือปฏิบัติจริง (Workshop-based) เหมาะสำหรับผู้เริ่มต้นที่มีพื้นฐาน HTML/JS มาบ้าง</p>
                     <h5 class="fw-bold mt-4 mb-3">สิ่งที่คุณจะได้เรียนรู้:</h5>
                     <ul class="list-group list-group-flush mb-0">
                         <li class="list-group-item bg-transparent px-0"><i class="bi bi-check-circle-fill text-success me-2"></i> พื้นฐาน React Components, Hooks และ State Management</li>
@@ -90,32 +90,32 @@
                 <div class="glass-card p-4 position-sticky" style="top: 90px;">
                     <div class="text-center mb-4">
                         <p class="text-muted mb-1">ราคาคลาสเรียน</p>
-                        <h2 class="display-6 fw-bold text-success mb-0">฿2,500</h2>
+                        <h2 id="detail-price" class="display-6 fw-bold text-success mb-0">฿2,500</h2>
                     </div>
                     
                     <div class="mb-4">
                         <div class="d-flex justify-content-between mb-1">
                             <span class="small fw-bold">จำนวนที่นั่งเหลือ</span>
-                            <span class="small text-muted">24/30</span>
+                            <span id="detail-seats-text" class="small text-muted">24/30</span>
                         </div>
                         <div class="progress" style="height: 10px;">
-                            <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 80%"></div>
+                            <div id="detail-seats-progress" class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 80%"></div>
                         </div>
-                        <p class="small text-danger mt-2 mb-0"><i class="bi bi-exclamation-triangle"></i> เหลืออีกเพียง 6 ที่นั่งสุดท้าย!</p>
+                        <p class="small text-danger mt-2 mb-0" id="detail-seats-warning">...</p>
                     </div>
 
                     <hr>
 
                     <div class="d-flex align-items-center mb-4">
-                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=50&q=80" alt="Instructor" class="rounded-circle me-3" width="50" height="50">
+                        <img id="detail-instructor-img" src="" alt="Instructor" class="rounded-circle me-3" width="50" height="50" style="object-fit: cover;">
                         <div>
-                            <p class="mb-0 fw-bold">อ. สมเกียรติ โค้ดดิ้ง</p>
-                            <p class="small text-muted mb-0">Senior Fullstack Developer</p>
+                            <p class="mb-0 fw-bold" id="detail-instructor-name">...</p>
+                            <p class="small text-muted mb-0" id="detail-instructor-role">...</p>
                         </div>
                     </div>
 
-                    <a href="#" class="btn btn-primary-custom w-100 py-3 fs-5" onclick="bookClass()">
-                        <i class="bi bi-ticket-perforated me-2"></i> จองคลาสนี้ทันที
+                    <a href="#" id="btn-book-now" class="btn btn-secondary w-100 py-3 fs-5 disabled">
+                        <span class="spinner-border spinner-border-sm me-2"></span> กำลังโหลด...
                     </a>
                 </div>
             </div>
@@ -131,16 +131,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/main.js"></script>
-    <script>
-        function bookClass() {
-            event.preventDefault();
-            if (localStorage.getItem('isLoggedIn') !== 'true') {
-                alert('กรุณาเข้าสู่ระบบก่อนทำการจอง');
-                window.location.href = 'login.html';
-            } else {
-                window.location.href = 'payment.html';
-            }
-        }
-    </script>
+    
 </body>
 </html>
