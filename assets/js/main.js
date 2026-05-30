@@ -127,6 +127,16 @@ async function loadAndDisplayClasses() {
     const container = document.getElementById('class-list-container');
     if (!container) return; // ดักไว้เผื่อกรณีที่โหลดหน้าอื่นที่ไม่มีคอนเทนเนอร์นี้ จะได้ไม่เกิด Error ใน Console
 
+    // ★ แสดง Loading Spinner หมุนโหลดตรงกลางก่อนเริ่มยิง API (ข้อ 7)
+    container.innerHTML = `
+        <div class="col-12 text-center py-5">
+            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                <span class="visually-hidden">กำลังโหลด...</span>
+            </div>
+            <p class="text-muted mt-3 fw-semibold">กำลังโหลดข้อมูลคลาสเรียนเรียนออนไลน์...</p>
+        </div>
+    `;
+
     try {
         // ยิงไปหา API เส้นของเพื่อนหลังบ้าน
         const response = await fetch(`${API_BASE_URL}/api/classes`);
@@ -203,6 +213,17 @@ async function loadSingleClassDetail() {
 
     // ตรวจสอบเบื้องต้น: ถ้าหน้านี้ไม่มีการส่งไอดีมา หรือไม่มีแท็กชื่อคลาส ให้หยุดทำงานทันที
     if (!classId || !document.getElementById('detail-title')) return;
+
+    // ★ แสดง Loading Spinner เล็กๆ ประคอง UX สำหรับหัวข้อเรียนรู้ระหว่างรอ API (ข้อ 7)
+    const topicsContainer = document.getElementById('detail-topics');
+    if (topicsContainer) {
+        topicsContainer.innerHTML = `
+            <div class="py-3 text-muted">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                กำลังโหลดรายละเอียดหัวข้อเรียนรู้ออนไลน์...
+            </div>
+        `;
+    }
 
     try {
         // ส่งคำร้องขอร้องข้อมูลไปยัง API รายคลาสของฝั่งหลังบ้าน
@@ -377,6 +398,16 @@ async function loadUserBookingHistory() {
     const container = document.getElementById('booking-history-container');
     // ดักไว้ก่อน: ถ้าหน้านี้ไม่มีพื้นที่แสดงประวัติการจอง ให้หยุดทำงานทันทีเพื่อกันเออร์เรอร์
     if (!container) return;
+
+    // ★ แสดง Loading Spinner ตรงกลางหน้าประวัติการจองก่อนเริ่มยิง API (ข้อ 7)
+    container.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status" style="width: 2.5rem; height: 2.5rem;">
+                <span class="visually-hidden">กำลังโหลด...</span>
+            </div>
+            <p class="text-muted mt-2 fw-semibold">กำลังเชื่อมต่อข้อมูลการจองของคุณ...</p>
+        </div>
+    `;
 
     // ★ ดึง userId จาก localStorage แทนการฮาร์ดโค้ด (localStorage continuity)
     const userId = getCurrentUserId();
