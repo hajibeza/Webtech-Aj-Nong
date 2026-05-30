@@ -190,8 +190,8 @@
                 // ขั้นที่ 2: ยิง API ดึงรายการจองทั้งหมดของ user
                 // เนื่องจาก Backend ยังไม่มี GET /api/bookings/:id (เส้นดึงเดี่ยว)
                 // เราจึงใช้วิธี "ดึงทั้งหมดมาแล้วกรองหาเอง" ฝั่ง Gate
-                const mockUserId = 'u-1';
-                const response = await fetch(`http://localhost:3000/api/bookings?userId=${mockUserId}`);
+                const userId = getCurrentUserId();
+                const response = await fetch(`${API_BASE_URL}/api/bookings?userId=${userId}`);
 
                 if (!response.ok) {
                     throw new Error(`API ตอบกลับสถานะ ${response.status}`);
@@ -212,7 +212,7 @@
                 // ขั้นที่ 4: ดึงข้อมูลคลาสเรียนที่เกี่ยวข้องมาเพิ่ม (เพื่อได้รูปภาพ, วันที่)
                 let classData = null;
                 if (booking.classInfo && booking.classInfo.id) {
-                    const classResponse = await fetch(`http://localhost:3000/api/classes/${booking.classInfo.id}`);
+                    const classResponse = await fetch(`${API_BASE_URL}/api/classes/${booking.classInfo.id}`);
                     if (classResponse.ok) {
                         classData = await classResponse.json();
                     }
@@ -255,7 +255,7 @@
 
             try {
                 // ยิง API อัปเดตสถานะใบจองเป็นชำระเงินเรียบร้อย (paid)
-                const response = await fetch(`http://localhost:3000/api/bookings/${currentBookingId}`, {
+                const response = await fetch(`${API_BASE_URL}/api/bookings/${currentBookingId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status: 'paid' })

@@ -1,3 +1,16 @@
+// ==========================================
+// ★ ตัวแปรกลาง (Central Config) สำหรับ API/State Layer
+// ==========================================
+
+// ★ API Base URL — เปลี่ยนตรงนี้จุดเดียว ส่งผลทั้งโปรเจค
+const API_BASE_URL = 'http://localhost:3000';
+
+// ★ ฟังก์ชันดึง userId ที่ล็อกอินอยู่จาก localStorage
+// แทนที่จะฮาร์ดโค้ด 'u-1' กระจายไปทั่ว เราเรียกฟังก์ชันนี้แทน
+function getCurrentUserId() {
+    return localStorage.getItem('userId') || 'u-1';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize all Bootstrap Toasts
     var toastElList = [].slice.call(document.querySelectorAll('.toast'))
@@ -49,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
 function handleLogout() {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('isAdmin');
+    localStorage.removeItem('userId');
     window.location.href = 'index.html';
 }
 
@@ -96,7 +110,11 @@ async function loadAndDisplayClasses() {
 
     try {
         // ยิงไปหา API เส้นของเพื่อนหลังบ้าน
-        const response = await fetch('http://localhost:3000/api/classes');
+        const response = await fetch(`${API_BASE_URL}/api/classes`);
+        // ★ เช็คสถานะ response ก่อนอ่าน JSON เพื่อป้องกันกรณี Backend ส่ง 500 กลับมา
+        if (!response.ok) {
+            throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+        }
         const data = await response.json();
 
         // ดึง Array ของ classes ออกมาจาก data.items (ตามที่เพื่อนตั้ง API Structure ไว้)
@@ -169,13 +187,16 @@ async function loadSingleClassDetail() {
 
     try {
         // ส่งคำร้องขอร้องข้อมูลไปยัง API รายคลาสของฝั่งหลังบ้าน
-        const response = await fetch(`http://localhost:3000/api/classes/${classId}`);
+        const response = await fetch(`${API_BASE_URL}/api/classes/${classId}`);
 
-        // หากฝั่งหลังบ้านส่งข้อมูลกลับมาว่าไม่พบรหัสคลาสเรียน (404 Not Found)
-        if (response.status === 404) {
-            alert('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ');
-            window.location.href = 'index.html'; // ส่งกลับหน้าแรก
-            return;
+        // ★ เช็คสถานะ response ทั้งหมด (รวม 404 และ 500)
+        if (!response.ok) {
+            if (response.status === 404) {
+                alert('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ');
+                window.location.href = 'index.html';
+                return;
+            }
+            throw new Error(`API ตอบกลับสถานะ ${response.status}`);
         }
 
         const item = await response.json();
@@ -238,17 +259,17 @@ async function processClassBooking(classId) {
         return;
     }
 
-    // กำหนดรหัสผู้ใช้ชั่วคราวเป็น 'u-1' (สมชาย) เพื่อใช้ทดสอบระบบตามโครงสร้างข้อมูลของหลังบ้าน
-    const mockUserId = 'u-1';
+    // ★ ดึง userId จาก localStorage แทนการฮาร์ดโค้ด (localStorage continuity)
+    const userId = getCurrentUserId();
 
     try {
         // ยิงคำร้องขอแบบ POST ส่งข้อมูลสิทธิ์ไปสมัครเรียนกับหลังบ้าน
-        const response = await fetch('http://localhost:3000/api/bookings', {
+        const response = await fetch(`${API_BASE_URL}/api/bookings`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 classId: classId,
-                userId: mockUserId
+                userId: userId
             })
         });
 
@@ -284,12 +305,16 @@ async function loadUserBookingHistory() {
     // ดักไว้ก่อน: ถ้าหน้านี้ไม่มีพื้นที่แสดงประวัติการจอง ให้หยุดทำงานทันทีเพื่อกันเออร์เรอร์
     if (!container) return;
 
-    // จำลองรหัสผู้ใช้ u-1 (สมชาย) เพื่อดึงข้อมูลตาม Mock Data ของหลังบ้าน
-    const mockUserId = 'u-1'; 
+    // ★ ดึง userId จาก localStorage แทนการฮาร์ดโค้ด (localStorage continuity)
+    const userId = getCurrentUserId();
 
     try {
         // ยิง API แบบ GET โดยส่ง Query Parameter เป็น userId เพื่อระบุเจาะจงประวัติของคนนี้
-        const response = await fetch(`http://localhost:3000/api/bookings?userId=${mockUserId}`);
+        const response = await fetch(`${API_BASE_URL}/api/bookings?userId=${userId}`);
+        // ★ เช็คสถานะ response ก่อนอ่าน JSON
+        if (!response.ok) {
+            throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+        }
         const data = await response.json();
 
         // ★ แก้ไข: API ส่งข้อมูลกลับมาในรูปแบบ { items: [...] } ไม่ใช่ Array ตรงๆ
@@ -372,7 +397,7 @@ async function cancelBooking(bookingId) {
     if (!isConfirm) return;
 
     try {
-        const response = await fetch(`http://localhost:3000/api/bookings/${bookingId}`, {
+        const response = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: 'canceled' })
