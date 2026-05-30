@@ -54,7 +54,7 @@
         <nav aria-label="breadcrumb" class="mb-4">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item"><a href="index.html" class="text-decoration-none">หน้าแรก</a></li>
-                <li class="breadcrumb-item active" aria-current="page">สร้าง Web App ด้วย React & Node.js</li>
+                <li class="breadcrumb-item active" aria-current="page" id="detail-breadcrumb">...</li>
             </ol>
         </nav>
 
@@ -66,9 +66,9 @@
                 <h1 id="detail-title" class="fw-bold mb-3">สร้าง Web App ด้วย React & Node.js (Fullstack)</h1>
                 
                 <div class="d-flex flex-wrap gap-3 mb-4 text-muted">
-                    <span class="badge bg-primary-subtle text-primary px-3 py-2 fs-6 rounded-pill">Programming</span>
-                    <span class="d-flex align-items-center"><i class="bi bi-calendar-event me-2"></i> 15 มิถุนายน 2026</span>
-                    <span class="d-flex align-items-center"><i class="bi bi-clock me-2"></i> 09:00 - 16:00 น.</span>
+                    <span class="badge bg-primary-subtle text-primary px-3 py-2 fs-6 rounded-pill" id="detail-category">...</span>
+                    <span class="d-flex align-items-center" id="detail-date"><i class="bi bi-calendar-event me-2"></i> ...</span>
+                    <span class="d-flex align-items-center" id="detail-time"><i class="bi bi-clock me-2"></i> ...</span>
                     <span class="d-flex align-items-center"><i class="bi bi-geo-alt me-2"></i> เรียนออนไลน์ (Zoom)</span>
                 </div>
 
@@ -101,16 +101,16 @@
                         <div class="progress" style="height: 10px;">
                             <div id="detail-seats-progress" class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 80%"></div>
                         </div>
-                        <p class="small text-danger mt-2 mb-0"><i class="bi bi-exclamation-triangle"></i> เหลืออีกเพียง 6 ที่นั่งสุดท้าย!</p>
+                        <p class="small text-danger mt-2 mb-0" id="detail-seats-warning">...</p>
                     </div>
 
                     <hr>
 
                     <div class="d-flex align-items-center mb-4">
-                        <img src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=50&q=80" alt="Instructor" class="rounded-circle me-3" width="50" height="50">
+                        <img id="detail-instructor-img" src="" alt="Instructor" class="rounded-circle me-3" width="50" height="50" style="object-fit: cover;">
                         <div>
-                            <p class="mb-0 fw-bold">อ. สมเกียรติ โค้ดดิ้ง</p>
-                            <p class="small text-muted mb-0">Senior Fullstack Developer</p>
+                            <p class="mb-0 fw-bold" id="detail-instructor-name">...</p>
+                            <p class="small text-muted mb-0" id="detail-instructor-role">...</p>
                         </div>
                     </div>
 

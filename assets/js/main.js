@@ -5,6 +5,25 @@
 // ★ API Base URL — เปลี่ยนตรงนี้จุดเดียว ส่งผลทั้งโปรเจค
 const API_BASE_URL = 'http://localhost:3000';
 
+// ★ พจนานุกรมแปลข้อมูลผู้สอน (Instructor Mapping) เพื่อแปลงชื่อย่อจาก API เป็นข้อมูลโปรไฟล์ตัวเต็ม
+const INSTRUCTOR_MAP = {
+    'Somkiat': {
+        name: 'อ. สมเกียรติ โค้ดดิ้ง',
+        role: 'Senior Fullstack Developer',
+        image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=50&q=80'
+    },
+    'Wittaya': {
+        name: 'อ. วิทยา ดาต้าซายน์',
+        role: 'Data Scientist & Analyst',
+        image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=50&q=80'
+    },
+    'Praew': {
+        name: 'อ. แพรว ยูเอ็กซ์ยูไอ',
+        role: 'Lead UX/UI Designer',
+        image: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=50&q=80'
+    }
+};
+
 // ★ ฟังก์ชันดึง userId ที่ล็อกอินอยู่จาก localStorage
 // แทนที่จะฮาร์ดโค้ด 'u-1' กระจายไปทั่ว เราเรียกฟังก์ชันนี้แทน
 function getCurrentUserId() {
@@ -207,6 +226,60 @@ async function loadSingleClassDetail() {
         document.getElementById('detail-desc').innerText = item.description;
         document.getElementById('detail-price').innerText = `฿${item.price.toLocaleString()}`;
         document.getElementById('detail-seats-text').innerText = `${item.seatsTaken}/${item.capacity}`;
+
+        // [เพิ่มเติมใหม่] อัปเดต Breadcrumb, Category และวันเวลาจาก API
+        const breadcrumbEl = document.getElementById('detail-breadcrumb');
+        if (breadcrumbEl) breadcrumbEl.innerText = item.title;
+
+        const categoryEl = document.getElementById('detail-category');
+        if (categoryEl) categoryEl.innerText = item.category;
+
+        const dateEl = document.getElementById('detail-date');
+        if (dateEl) {
+            const classDate = new Date(item.date);
+            const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+            const formattedDate = `${classDate.getDate()} ${thaiMonths[classDate.getMonth()]} ${classDate.getFullYear() + 543}`;
+            dateEl.innerHTML = `<i class="bi bi-calendar-event me-2"></i> ${formattedDate}`;
+        }
+
+        const timeEl = document.getElementById('detail-time');
+        if (timeEl) {
+            timeEl.innerHTML = `<i class="bi bi-clock me-2"></i> ${item.timeStart} - ${item.timeEnd} น.`;
+        }
+
+        // [เพิ่มเติมใหม่] อัปเดตตัวเตือนที่นั่งเหลือตามจริงอย่างยืดหยุ่น
+        const seatsWarningEl = document.getElementById('detail-seats-warning');
+        if (seatsWarningEl) {
+            if (item.seatsAvailable <= 0) {
+                seatsWarningEl.innerHTML = '<i class="bi bi-exclamation-circle-fill text-danger me-2"></i>ขออภัย คลาสเรียนนี้เต็มแล้ว';
+                seatsWarningEl.className = 'small text-danger mt-2 mb-0';
+            } else if (item.seatsAvailable <= 5) {
+                seatsWarningEl.innerHTML = `<i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>เหลืออีกเพียง ${item.seatsAvailable} ที่นั่งสุดท้าย!`;
+                seatsWarningEl.className = 'small text-danger mt-2 mb-0';
+            } else {
+                seatsWarningEl.innerHTML = `<i class="bi bi-check-circle-fill text-success me-2"></i>เปิดรับสมัครปกติ (เหลือ ${item.seatsAvailable} ที่นั่ง)`;
+                seatsWarningEl.className = 'small text-success mt-2 mb-0';
+            }
+        }
+
+        // [เพิ่มเติมใหม่] อัปเดตข้อมูลและโปรไฟล์ของผู้สอนแบบ Dynamic
+        const instructorInfo = INSTRUCTOR_MAP[item.instructor] || {
+            name: `อ. ${item.instructor}`,
+            role: 'วิทยากรผู้เชี่ยวชาญ',
+            image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=50&q=80'
+        };
+
+        const instructorImgEl = document.getElementById('detail-instructor-img');
+        if (instructorImgEl) {
+            instructorImgEl.src = instructorInfo.image;
+            instructorImgEl.alt = instructorInfo.name;
+        }
+
+        const instructorNameEl = document.getElementById('detail-instructor-name');
+        if (instructorNameEl) instructorNameEl.innerText = instructorInfo.name;
+
+        const instructorRoleEl = document.getElementById('detail-instructor-role');
+        if (instructorRoleEl) instructorRoleEl.innerText = instructorInfo.role;
 
         // คำนวณสัดส่วนเปอร์เซ็นต์ที่นั่งเพื่อนำไปปรับความยาวของหลอด Progress Bar แบบเรียลไทม์
         const progressPercent = (item.seatsTaken / item.capacity) * 100;
