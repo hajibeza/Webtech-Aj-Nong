@@ -424,6 +424,21 @@ async function loadUserBookingHistory() {
         // ★ แก้ไข: API ส่งข้อมูลกลับมาในรูปแบบ { items: [...] } ไม่ใช่ Array ตรงๆ
         const bookings = data.items || [];
 
+        // ★ [เพิ่มเติมใหม่สำหรับข้อ 12] คำนวณสถิติจากประวัติการจองจริง
+        const activeBookings = bookings.filter(b => b.status !== 'canceled');
+        const paidBookings = bookings.filter(b => b.status === 'paid');
+        const pendingBookings = bookings.filter(b => b.status === 'pending');
+
+        // ส่งตัวเลขไปอัปเดตบนหน้าเว็บจริงแบบเรียลไทม์
+        const statTotalEl = document.getElementById('stat-total');
+        if (statTotalEl) statTotalEl.innerText = activeBookings.length;
+
+        const statPaidEl = document.getElementById('stat-paid');
+        if (statPaidEl) statPaidEl.innerText = paidBookings.length;
+
+        const statPendingEl = document.getElementById('stat-pending');
+        if (statPendingEl) statPendingEl.innerText = pendingBookings.length;
+
         // เคลียร์พื้นที่ล้างกล่องข้อมูลทดสอบเก่าออกให้หมดก่อน
         container.innerHTML = '';
 
