@@ -1,4 +1,6 @@
 node_modules
+.env
+store.db
 file/
 ANALYSIS_RESULTS.md
 WALKTHROUGH.md

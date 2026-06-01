@@ -5,6 +5,20 @@
 // ★ API Base URL — เปลี่ยนตรงนี้จุดเดียว ส่งผลทั้งโปรเจค
 const API_BASE_URL = 'http://localhost:3000';
 
+// ★ JWT helpers for protected API calls
+function getAuthToken() {
+    return localStorage.getItem('token');
+}
+
+function getAuthHeaders() {
+    const headers = { 'Content-Type': 'application/json' };
+    const token = getAuthToken();
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
+}
+
 // ★ พจนานุกรมแปลข้อมูลผู้สอน (Instructor Mapping) เพื่อแปลงชื่อย่อจาก API เป็นข้อมูลโปรไฟล์ตัวเต็ม
 const INSTRUCTOR_MAP = {
     'Somkiat': {
@@ -27,7 +41,7 @@ const INSTRUCTOR_MAP = {
 // ★ ฟังก์ชันดึง userId ที่ล็อกอินอยู่จาก localStorage
 // แทนที่จะฮาร์ดโค้ด 'u-1' กระจายไปทั่ว เราเรียกฟังก์ชันนี้แทน
 function getCurrentUserId() {
-    return localStorage.getItem('userId') || 'u-1';
+    return localStorage.getItem('userId');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -82,6 +96,8 @@ function handleLogout() {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('isAdmin');
     localStorage.removeItem('userId');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('token');
     window.location.href = 'index.html';
 }
 
@@ -145,9 +161,11 @@ async function loadAndDisplayClasses() {
             throw new Error(`API ตอบกลับสถานะ ${response.status}`);
         }
         const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to load classes');
+        }
 
-        // ดึง Array ของ classes ออกมาจาก data.items (ตามที่เพื่อนตั้ง API Structure ไว้)
-        const classes = data.items || [];
+        const classes = data.data?.items || [];
 
         // ล้างข้อมูลเก่าหรือข้อความที่อาจจะค้างอยู่
         container.innerHTML = '';
@@ -239,7 +257,17 @@ async function loadSingleClassDetail() {
             throw new Error(`API ตอบกลับสถานะ ${response.status}`);
         }
 
-        const item = await response.json();
+        const result = await response.json();
+        if (!result.success) {
+            if (response.status === 404) {
+                alert('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ');
+                window.location.href = 'index.html';
+                return;
+            }
+            throw new Error(result.message || `API ตอบกลับสถานะ ${response.status}`);
+        }
+
+        const item = result.data;
 
         // นำข้อมูลจริงที่หลังบ้านส่งมา นำไปกระจายใส่ตาม id แท็กต่างๆ ที่เราตั้งไว้ใน HTML
         document.getElementById('detail-img').src = item.imageUrl;
@@ -353,35 +381,31 @@ async function processClassBooking(classId) {
         return;
     }
 
-    // ★ ดึง userId จาก localStorage แทนการฮาร์ดโค้ด (localStorage continuity)
-    const userId = getCurrentUserId();
+    const token = getAuthToken();
+    if (!token) {
+        alert('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ');
+        window.location.href = 'login.html';
+        return;
+    }
 
     try {
-        // ยิงคำร้องขอแบบ POST ส่งข้อมูลสิทธิ์ไปสมัครเรียนกับหลังบ้าน
         const response = await fetch(`${API_BASE_URL}/api/bookings`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                classId: classId,
-                userId: userId
-            })
+            headers: getAuthHeaders(),
+            body: JSON.stringify({ classId })
         });
 
-        // กรณีที่ 1: ดำเนินการสร้างรายการจองสำเร็จ (HTTP Status 201 Created)
-        if (response.status === 201) {
-            const result = await response.json();
-            // ★ ส่ง bookingId ไปกับ URL เพื่อให้หน้า payment ดึงข้อมูลจองจาก API ได้
-            window.location.href = `payment.html?bookingId=${result.id}`;
+        const result = await response.json();
+
+        if (response.status === 201 && result.success) {
+            window.location.href = `payment.html?bookingId=${result.data.id}`;
         }
-        // กรณีที่ 2: ดักจับสเตตัส 409 Conflict เมื่อมีคนอื่นกดตัดหน้าจองที่นั่งสุดท้ายจนเต็มพอดี
         else if (response.status === 409) {
-            alert('ขออภัยด้วยครับ! มีผู้ใช้อื่นทำรายการจองที่นั่งสุดท้ายตัดหน้าไปเมื่อสักครู่ คลาสเรียนนี้เต็มแล้ว');
-            window.location.reload(); // รีเฟรชหน้าจอเพื่ออัปเดตสถานะปุ่มเป็นที่นั่งเต็ม
+            alert(result.message || 'ขออภัยด้วยครับ! คลาสเรียนนี้เต็มแล้ว');
+            window.location.reload();
         }
-        // กรณีเออร์เรอร์อื่นๆ จากระบบหลังบ้าน
         else {
-            const errData = await response.json();
-            alert(`ไม่สามารถทำรายการได้: ${errData.error || 'ระบบขัดข้อง'}`);
+            alert(`ไม่สามารถทำรายการได้: ${result.message || 'ระบบขัดข้อง'}`);
         }
 
     } catch (error) {
@@ -409,20 +433,25 @@ async function loadUserBookingHistory() {
         </div>
     `;
 
-    // ★ ดึง userId จาก localStorage แทนการฮาร์ดโค้ด (localStorage continuity)
-    const userId = getCurrentUserId();
+    const token = getAuthToken();
+    if (!token) {
+        container.innerHTML = `<div class="text-center text-muted py-5"><p>กรุณา<a href="login.html">เข้าสู่ระบบ</a>เพื่อดูประวัติการจอง</p></div>`;
+        return;
+    }
 
     try {
-        // ยิง API แบบ GET โดยส่ง Query Parameter เป็น userId เพื่อระบุเจาะจงประวัติของคนนี้
-        const response = await fetch(`${API_BASE_URL}/api/bookings?userId=${userId}`);
-        // ★ เช็คสถานะ response ก่อนอ่าน JSON
+        const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+            headers: getAuthHeaders()
+        });
         if (!response.ok) {
             throw new Error(`API ตอบกลับสถานะ ${response.status}`);
         }
         const data = await response.json();
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to load bookings');
+        }
 
-        // ★ แก้ไข: API ส่งข้อมูลกลับมาในรูปแบบ { items: [...] } ไม่ใช่ Array ตรงๆ
-        const bookings = data.items || [];
+        const bookings = data.data?.items || [];
 
         // ★ [เพิ่มเติมใหม่สำหรับข้อ 12] คำนวณสถิติจากประวัติการจองจริง
         const activeBookings = bookings.filter(b => b.status !== 'canceled');
@@ -518,12 +547,13 @@ async function cancelBooking(bookingId) {
     try {
         const response = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: getAuthHeaders(),
             body: JSON.stringify({ status: 'canceled' })
         });
 
-        if (!response.ok) {
-            throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+        const result = await response.json();
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || `API ตอบกลับสถานะ ${response.status}`);
         }
 
         showToast('ยกเลิกการจองคลาสเรียนสำเร็จแล้วครับ', 'success');

@@ -1,0 +1,79 @@
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
+const db = require('../db/database');
+
+/**
+ * Register a new user with a bcrypt-hashed password.
+ * @param {{ email: string, password: string, name: string, role?: string }} payload
+ */
+async function register({ email, password, name, role = 'user' }) {
+	try {
+		const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+		if (existing) {
+			const err = new Error('Email already registered');
+			err.statusCode = 409;
+			throw err;
+		}
+
+		const passwordHash = await bcrypt.hash(password, 10);
+		const result = db
+			.prepare(
+				`INSERT INTO users (email, password_hash, name, role)
+				 VALUES (?, ?, ?, ?)`
+			)
+			.run(email, passwordHash, name, role);
+
+		const user = db
+			.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?')
+			.get(result.lastInsertRowid);
+
+		return user;
+	} catch (error) {
+		throw error;
+	}
+}
+
+/**
+ * Authenticate user and return JWT token.
+ * @param {{ email: string, password: string }} payload
+ */
+async function login({ email, password }) {
+	try {
+		const user = db
+			.prepare('SELECT id, email, password_hash, name, role FROM users WHERE email = ?')
+			.get(email);
+
+		if (!user) {
+			const err = new Error('Invalid email or password');
+			err.statusCode = 401;
+			throw err;
+		}
+
+		const valid = await bcrypt.compare(password, user.password_hash);
+		if (!valid) {
+			const err = new Error('Invalid email or password');
+			err.statusCode = 401;
+			throw err;
+		}
+
+		const token = jwt.sign(
+			{ id: user.id, email: user.email, role: user.role },
+			process.env.JWT_SECRET,
+			{ expiresIn: '24h' }
+		);
+
+		return {
+			token,
+			user: {
+				id: user.id,
+				email: user.email,
+				name: user.name,
+				role: user.role,
+			},
+		};
+	} catch (error) {
+		throw error;
+	}
+}
+
+module.exports = { register, login };
