@@ -5,18 +5,62 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const data = require('./mockData');
 
+// ★ [Phase 2 — ข้อ 1] JWT Authentication Layer
+const jwt = require('jsonwebtoken');
+const JWT_SECRET = 'skillshare-secret-key-2026'; // Mock secret สำหรับโปรเจคเรียน
+
 app.use(express.json());
 
 // Allow local dev from file:// or different ports.
 app.use((req, res, next) => {
 	res.setHeader('Access-Control-Allow-Origin', '*');
 	res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS');
-	res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+	res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
 	if (req.method === 'OPTIONS') {
 		return res.sendStatus(204);
 	}
 	next();
 });
+
+// ★ [Phase 2 — ข้อ 1] POST /api/auth/login — สร้าง JWT Token ส่งกลับ
+app.post('/api/auth/login', (req, res) => {
+	const { email, password } = req.body || {};
+
+	// ตรวจสอบเบื้องต้น: ต้องมี email และ password
+	if (!email || !password) {
+		return res.status(400).json({ error: 'Email and password are required' });
+	}
+
+	// Mock: ใช้ user คนแรกในระบบ (สำหรับโปรเจคเรียนไม่ต้องเช็ค password จริง)
+	const user = data.users.find((u) => u.id === 'u-1') || data.users[0];
+
+	// ★ สร้าง JWT Token พร้อมข้อมูล payload
+	const token = jwt.sign(
+		{ userId: user.id, name: user.name, role: user.role },
+		JWT_SECRET,
+		{ expiresIn: '2h' }
+	);
+
+	res.json({
+		token,
+		user: { id: user.id, name: user.name, role: user.role },
+	});
+});
+
+// ★ [Phase 2 — ข้อ 1] Middleware ถอดรหัส JWT — ใส่ก่อน protected routes
+function authMiddleware(req, res, next) {
+	const authHeader = req.headers.authorization;
+	if (!authHeader || !authHeader.startsWith('Bearer ')) {
+		return res.status(401).json({ error: 'Token required' });
+	}
+	try {
+		const token = authHeader.split(' ')[1];
+		req.user = jwt.verify(token, JWT_SECRET);
+		next();
+	} catch (err) {
+		return res.status(401).json({ error: 'Invalid or expired token' });
+	}
+}
 
 const findClass = (classId) => data.classes.find((item) => item.id === classId);
 const findUser = (userId) => data.users.find((item) => item.id === userId);
@@ -74,7 +118,8 @@ app.get('/api/bookings', (req, res) => {
 	res.json({ items: items.map(mapBooking) });
 });
 
-app.post('/api/bookings', (req, res) => {
+// ★ [Phase 2 — ข้อ 1] เพิ่ม authMiddleware ป้องกัน route สร้างการจอง
+app.post('/api/bookings', authMiddleware, (req, res) => {
 	const { classId, userId } = req.body || {};
 	const cls = findClass(classId);
 	const user = findUser(userId);
@@ -103,7 +148,8 @@ app.post('/api/bookings', (req, res) => {
 	res.status(201).json(mapBooking(booking));
 });
 
-app.put('/api/bookings/:id', (req, res) => {
+// ★ [Phase 2 — ข้อ 1] เพิ่ม authMiddleware ป้องกัน route อัปเดตการจอง
+app.put('/api/bookings/:id', authMiddleware, (req, res) => {
 	const { id } = req.params;
 	const { status } = req.body;
 
