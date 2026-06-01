@@ -187,18 +187,19 @@
             currentBookingId = bookingId;
 
             try {
-                // ขั้นที่ 2: ยิง API ดึงรายการจองทั้งหมดของ user
-                // เนื่องจาก Backend ยังไม่มี GET /api/bookings/:id (เส้นดึงเดี่ยว)
-                // เราจึงใช้วิธี "ดึงทั้งหมดมาแล้วกรองหาเอง" ฝั่ง Gate
-                const userId = getCurrentUserId();
-                const response = await fetch(`${API_BASE_URL}/api/bookings?userId=${userId}`);
+                const response = await fetch(`${API_BASE_URL}/api/bookings`, {
+                    headers: getAuthHeaders()
+                });
 
                 if (!response.ok) {
                     throw new Error(`API ตอบกลับสถานะ ${response.status}`);
                 }
 
                 const data = await response.json();
-                const bookings = data.items || [];
+                if (!data.success) {
+                    throw new Error(data.message || 'Failed to load bookings');
+                }
+                const bookings = data.data?.items || [];
 
                 // ขั้นที่ 3: กรองหา booking ที่ตรงกับ bookingId ที่เราต้องการ
                 const booking = bookings.find(b => b.id === bookingId);
@@ -214,7 +215,10 @@
                 if (booking.classInfo && booking.classInfo.id) {
                     const classResponse = await fetch(`${API_BASE_URL}/api/classes/${booking.classInfo.id}`);
                     if (classResponse.ok) {
-                        classData = await classResponse.json();
+                        const classResult = await classResponse.json();
+                        if (classResult.success) {
+                            classData = classResult.data;
+                        }
                     }
                 }
 
@@ -257,12 +261,13 @@
                 // ยิง API อัปเดตสถานะใบจองเป็นชำระเงินเรียบร้อย (paid)
                 const response = await fetch(`${API_BASE_URL}/api/bookings/${currentBookingId}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: getAuthHeaders(),
                     body: JSON.stringify({ status: 'paid' })
                 });
 
-                if (!response.ok) {
-                    throw new Error(`API ตอบกลับสถานะ ${response.status}`);
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || `API ตอบกลับสถานะ ${response.status}`);
                 }
 
                 window.location.href = 'profile.html?payment=success';
