@@ -12,10 +12,6 @@ const bookingRoutes = require('../src/routes/bookings');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ★ [Phase 2 — ข้อ 1] JWT Authentication Layer
-const jwt = require('jsonwebtoken');
-const JWT_SECRET = 'skillshare-secret-key-2026'; // Mock secret สำหรับโปรเจคเรียน
-
 app.use(express.json());
 
 app.use((req, res, next) => {
