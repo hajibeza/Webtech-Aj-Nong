@@ -44,7 +44,70 @@ function getCurrentUserId() {
     return localStorage.getItem('userId');
 }
 
+// ==========================================
+// ★ [Phase 2 — ข้อ 3] Booking State Management
+// ระบบจัดการสถานะการจองส่วนกลาง (Single Source of Truth)
+// ข้อมูลการจองทั้งหมดจะถูกเก็บไว้ใน Array นี้ตัวเดียว
+// และจะถูกบันทึก/กู้คืนผ่าน localStorage อัตโนมัติ
+// ==========================================
+
+// ★ ตัวแปรกลางเก็บข้อมูลการจองทั้งหมด (Single Source of Truth)
+let bookingState = [];
+
+// ★ บันทึกสถานะการจองลง localStorage (Persistence)
+// เรียกทุกครั้งที่มีการเปลี่ยนแปลงข้อมูลใน bookingState
+function persistBookingState() {
+    localStorage.setItem('bookingState', JSON.stringify(bookingState));
+}
+
+// ★ กู้คืนสถานะการจองจาก localStorage กลับเข้า bookingState (Hydration)
+// เรียกตอนเปิดหน้าเว็บครั้งแรก (DOMContentLoaded) เพื่อให้ข้อมูลไม่หายแม้รีเฟรช
+function hydrateBookingState() {
+    try {
+        const saved = localStorage.getItem('bookingState');
+        if (saved) {
+            bookingState = JSON.parse(saved);
+        }
+    } catch (error) {
+        console.error('ไม่สามารถกู้คืนข้อมูลการจองได้:', error);
+        bookingState = [];
+    }
+}
+
+// ★ เพิ่มใบจองใหม่เข้า State กลาง แล้วบันทึกลง localStorage
+function addBookingToState(booking) {
+    // ป้องกันข้อมูลซ้ำ: เช็คว่ามี booking id นี้อยู่แล้วหรือยัง
+    const exists = bookingState.find(b => b.id === booking.id);
+    if (!exists) {
+        bookingState.push(booking);
+        persistBookingState();
+    }
+}
+
+// ★ อัปเดตสถานะของใบจองที่มีอยู่แล้ว (เช่น เปลี่ยนจาก pending → canceled)
+function updateBookingInState(bookingId, updates) {
+    const index = bookingState.findIndex(b => b.id === bookingId);
+    if (index !== -1) {
+        bookingState[index] = { ...bookingState[index], ...updates };
+        persistBookingState();
+    }
+}
+
+// ★ ลบใบจองออกจาก State กลาง (ใช้กรณีพิเศษ)
+function removeBookingFromState(bookingId) {
+    bookingState = bookingState.filter(b => b.id !== bookingId);
+    persistBookingState();
+}
+
+// ★ ดึงข้อมูลการจองทั้งหมดจาก State กลาง
+function getBookingState() {
+    return bookingState;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // ★ [Phase 2 — ข้อ 3] กู้คืนสถานะการจองจาก localStorage ก่อนทำอย่างอื่น (Hydration)
+    hydrateBookingState();
+
     // Initialize all Bootstrap Toasts
     var toastElList = [].slice.call(document.querySelectorAll('.toast'))
     var toastList = toastElList.map(function (toastEl) {
@@ -98,6 +161,9 @@ function handleLogout() {
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
     localStorage.removeItem('token');
+    // ★ [Phase 2 — ข้อ 3] ล้างสถานะการจองออกจาก localStorage ตอนออกจากระบบด้วย
+    localStorage.removeItem('bookingState');
+    bookingState = [];
     window.location.href = 'index.html';
 }
 
@@ -398,6 +464,8 @@ async function processClassBooking(classId) {
         const result = await response.json();
 
         if (response.status === 201 && result.success) {
+            // ★ [Phase 2 — ข้อ 3] เพิ่มใบจองใหม่เข้า State กลาง + บันทึกลง localStorage
+            addBookingToState(result.data);
             window.location.href = `payment.html?bookingId=${result.data.id}`;
         }
         else if (response.status === 409) {
@@ -555,6 +623,9 @@ async function cancelBooking(bookingId) {
         if (!response.ok || !result.success) {
             throw new Error(result.message || `API ตอบกลับสถานะ ${response.status}`);
         }
+
+        // ★ [Phase 2 — ข้อ 3] อัปเดตสถานะใบจองใน State กลางเป็น 'canceled'
+        updateBookingInState(bookingId, { status: 'canceled' });
 
         showToast('ยกเลิกการจองคลาสเรียนสำเร็จแล้วครับ', 'success');
         
