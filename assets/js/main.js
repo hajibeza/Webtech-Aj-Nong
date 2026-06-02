@@ -339,7 +339,7 @@ async function loadSingleClassDetail() {
         // ★ เช็คสถานะ response ทั้งหมด (รวม 404 และ 500)
         if (!response.ok) {
             if (response.status === 404) {
-                alert('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ');
+                showToast('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ', 'warning');
                 window.location.href = 'index.html';
                 return;
             }
@@ -349,7 +349,7 @@ async function loadSingleClassDetail() {
         const result = await response.json();
         if (!result.success) {
             if (response.status === 404) {
-                alert('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ');
+                showToast('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ', 'warning');
                 window.location.href = 'index.html';
                 return;
             }
@@ -465,14 +465,14 @@ async function processClassBooking(classId) {
     // ตรวจสอบสิทธิ์: ดึงสถานะการล็อกอินปัจจุบันจาก localStorage
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     if (!isLoggedIn) {
-        alert('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ');
+        showToast('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ', 'warning');
         window.location.href = 'login.html'; // ส่งไปหน้าล็อกอิน
         return;
     }
 
     const token = getAuthToken();
     if (!token) {
-        alert('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ');
+        showToast('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ', 'warning');
         window.location.href = 'login.html';
         return;
     }
@@ -492,16 +492,16 @@ async function processClassBooking(classId) {
             window.location.href = `payment.html?bookingId=${result.data.id}`;
         }
         else if (response.status === 409) {
-            alert(result.message || 'ขออภัยด้วยครับ! คลาสเรียนนี้เต็มแล้ว');
+            showToast(result.message || 'ขออภัยด้วยครับ! คลาสเรียนนี้เต็มแล้ว', 'danger');
             window.location.reload();
         }
         else {
-            alert(`ไม่สามารถทำรายการได้: ${result.message || 'ระบบขัดข้อง'}`);
+            showToast(`ไม่สามารถทำรายการได้: ${result.message || 'ระบบขัดข้อง'}`, 'danger');
         }
 
     } catch (error) {
         console.error('เกิดข้อผิดพลาดในการส่ง request การจอง:', error);
-        alert('ไม่สามารถเชื่อมต่อระบบหลังบ้านได้ในขณะนี้');
+        showToast('ไม่สามารถเชื่อมต่อระบบหลังบ้านได้ในขณะนี้', 'danger');
     }
 }
 
