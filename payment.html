@@ -79,6 +79,10 @@
                             </div>
                             
                             <button class="btn btn-primary-custom w-100 py-3" onclick="confirmPayment()">ยืนยันการชำระเงิน</button>
+                            <!-- ★ [Phase 2] ป้ายชี้แจงว่าเป็นระบบจำลอง (Bypass Payment) -->
+                            <p class="text-center text-muted small mt-2 mb-0">
+                                <i class="bi bi-info-circle me-1"></i>ระบบจำลอง (Mock) — ไม่มีการตัดเงินจริง
+                            </p>
                         </div>
                     </div>
 
@@ -178,8 +182,10 @@
             const bookingId = urlParams.get('bookingId');
 
             if (!bookingId) {
-                alert('ไม่พบรหัสใบจอง กรุณาทำรายการจองใหม่');
-                window.location.href = 'index.html';
+                showToast('ไม่พบรหัสใบจอง กรุณาทำรายการจองใหม่ครับ', 'danger');
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
                 return;
             }
 
@@ -205,8 +211,10 @@
                 const booking = bookings.find(b => b.id === bookingId);
 
                 if (!booking) {
-                    alert('ไม่พบข้อมูลใบจองนี้ในระบบ');
-                    window.location.href = 'index.html';
+                    showToast('ไม่พบข้อมูลใบจองนี้ในระบบครับ', 'danger');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 2000);
                     return;
                 }
 
@@ -274,7 +282,7 @@
 
             } catch (error) {
                 console.error('เกิดข้อผิดพลาดในการยืนยันการชำระเงิน:', error);
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้ง');
+                showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้งครับ', 'danger');
                 btn.innerHTML = 'ยืนยันการชำระเงิน';
                 btn.disabled = false;
                 // สั่งให้นับเวลาถอยหลังต่อหากเกิดข้อผิดพลาด

@@ -44,7 +44,85 @@ function getCurrentUserId() {
     return localStorage.getItem('userId');
 }
 
+// ==========================================
+// ★ [Phase 2 — ข้อ 3] Booking State Management
+// ระบบจัดการสถานะการจองส่วนกลาง (Single Source of Truth)
+// ข้อมูลการจองทั้งหมดจะถูกเก็บไว้ใน Array นี้ตัวเดียว
+// และจะถูกบันทึก/กู้คืนผ่าน localStorage อัตโนมัติ
+// ==========================================
+
+// ★ ตัวแปรกลางเก็บข้อมูลการจองทั้งหมด (Single Source of Truth)
+let bookingState = [];
+
+// ★ บันทึกสถานะการจองลง localStorage (Persistence)
+// เรียกทุกครั้งที่มีการเปลี่ยนแปลงข้อมูลใน bookingState
+function persistBookingState() {
+    localStorage.setItem('bookingState', JSON.stringify(bookingState));
+}
+
+// ★ กู้คืนสถานะการจองจาก localStorage กลับเข้า bookingState (Hydration)
+// เรียกตอนเปิดหน้าเว็บครั้งแรก (DOMContentLoaded) เพื่อให้ข้อมูลไม่หายแม้รีเฟรช
+function hydrateBookingState() {
+    try {
+        const saved = localStorage.getItem('bookingState');
+        if (saved) {
+            bookingState = JSON.parse(saved);
+        }
+    } catch (error) {
+        console.error('ไม่สามารถกู้คืนข้อมูลการจองได้:', error);
+        bookingState = [];
+    }
+}
+
+// ★ เพิ่มใบจองใหม่เข้า State กลาง แล้วบันทึกลง localStorage
+function addBookingToState(booking) {
+    // ป้องกันข้อมูลซ้ำ: เช็คว่ามี booking id นี้อยู่แล้วหรือยัง
+    const exists = bookingState.find(b => b.id === booking.id);
+    if (!exists) {
+        bookingState.push(booking);
+        persistBookingState();
+    }
+}
+
+// ★ อัปเดตสถานะของใบจองที่มีอยู่แล้ว (เช่น เปลี่ยนจาก pending → canceled)
+function updateBookingInState(bookingId, updates) {
+    const index = bookingState.findIndex(b => b.id === bookingId);
+    if (index !== -1) {
+        bookingState[index] = { ...bookingState[index], ...updates };
+        persistBookingState();
+    }
+}
+
+// ★ ลบใบจองออกจาก State กลาง (ใช้กรณีพิเศษ)
+function removeBookingFromState(bookingId) {
+    bookingState = bookingState.filter(b => b.id !== bookingId);
+    persistBookingState();
+}
+
+// ★ ดึงข้อมูลการจองทั้งหมดจาก State กลาง
+function getBookingState() {
+    return bookingState;
+}
+
+// ==========================================
+// ★ [Phase 2 — ข้อ 9] Auth Guard
+// ตรวจสอบสิทธิ์ก่อนเข้าหน้าลับ (เช่น profile, payment)
+// ถ้ายังไม่ได้ล็อกอิน จะดีดกลับไปหน้า login ทันที
+// ==========================================
+function requireAuth() {
+    const token = getAuthToken();
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (!token || !isLoggedIn) {
+        window.location.href = 'login.html';
+        return false;
+    }
+    return true;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    // ★ [Phase 2 — ข้อ 3] กู้คืนสถานะการจองจาก localStorage ก่อนทำอย่างอื่น (Hydration)
+    hydrateBookingState();
+
     // Initialize all Bootstrap Toasts
     var toastElList = [].slice.call(document.querySelectorAll('.toast'))
     var toastList = toastElList.map(function (toastEl) {
@@ -74,6 +152,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ★ [Phase 2 — ข้อ 9] Auth Guard: ตรวจสิทธิ์ก่อนเข้าหน้า protected
+    // ถ้าอยู่หน้า profile หรือ payment แล้วยังไม่ได้ล็อกอิน → ดีดกลับไป login
+    const currentPage = window.location.pathname.split('/').pop();
+    const protectedPages = ['profile.html', 'payment.html'];
+    if (protectedPages.includes(currentPage)) {
+        if (!requireAuth()) return; // หยุดทำงานทั้งหมดถ้ายังไม่ได้ล็อกอิน
+    }
+
     // สั่งให้ฟังก์ชันดึงข้อมูลคลาสเรียนทั้งหมดทำงาน (ถ้ามีฟังก์ชันนี้อยู่ในไฟล์)
     if (typeof loadAndDisplayClasses === 'function') {
         loadAndDisplayClasses();
@@ -98,6 +184,9 @@ function handleLogout() {
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
     localStorage.removeItem('token');
+    // ★ [Phase 2 — ข้อ 3] ล้างสถานะการจองออกจาก localStorage ตอนออกจากระบบด้วย
+    localStorage.removeItem('bookingState');
+    bookingState = [];
     window.location.href = 'index.html';
 }
 
@@ -250,7 +339,7 @@ async function loadSingleClassDetail() {
         // ★ เช็คสถานะ response ทั้งหมด (รวม 404 และ 500)
         if (!response.ok) {
             if (response.status === 404) {
-                alert('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ');
+                showToast('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ', 'warning');
                 window.location.href = 'index.html';
                 return;
             }
@@ -260,7 +349,7 @@ async function loadSingleClassDetail() {
         const result = await response.json();
         if (!result.success) {
             if (response.status === 404) {
-                alert('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ');
+                showToast('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ', 'warning');
                 window.location.href = 'index.html';
                 return;
             }
@@ -376,14 +465,14 @@ async function processClassBooking(classId) {
     // ตรวจสอบสิทธิ์: ดึงสถานะการล็อกอินปัจจุบันจาก localStorage
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     if (!isLoggedIn) {
-        alert('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ');
+        showToast('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ', 'warning');
         window.location.href = 'login.html'; // ส่งไปหน้าล็อกอิน
         return;
     }
 
     const token = getAuthToken();
     if (!token) {
-        alert('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ');
+        showToast('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ', 'warning');
         window.location.href = 'login.html';
         return;
     }
@@ -398,19 +487,21 @@ async function processClassBooking(classId) {
         const result = await response.json();
 
         if (response.status === 201 && result.success) {
+            // ★ [Phase 2 — ข้อ 3] เพิ่มใบจองใหม่เข้า State กลาง + บันทึกลง localStorage
+            addBookingToState(result.data);
             window.location.href = `payment.html?bookingId=${result.data.id}`;
         }
         else if (response.status === 409) {
-            alert(result.message || 'ขออภัยด้วยครับ! คลาสเรียนนี้เต็มแล้ว');
+            showToast(result.message || 'ขออภัยด้วยครับ! คลาสเรียนนี้เต็มแล้ว', 'danger');
             window.location.reload();
         }
         else {
-            alert(`ไม่สามารถทำรายการได้: ${result.message || 'ระบบขัดข้อง'}`);
+            showToast(`ไม่สามารถทำรายการได้: ${result.message || 'ระบบขัดข้อง'}`, 'danger');
         }
 
     } catch (error) {
         console.error('เกิดข้อผิดพลาดในการส่ง request การจอง:', error);
-        alert('ไม่สามารถเชื่อมต่อระบบหลังบ้านได้ในขณะนี้');
+        showToast('ไม่สามารถเชื่อมต่อระบบหลังบ้านได้ในขณะนี้', 'danger');
     }
 }
 
@@ -555,6 +646,9 @@ async function cancelBooking(bookingId) {
         if (!response.ok || !result.success) {
             throw new Error(result.message || `API ตอบกลับสถานะ ${response.status}`);
         }
+
+        // ★ [Phase 2 — ข้อ 3] อัปเดตสถานะใบจองใน State กลางเป็น 'canceled'
+        updateBookingInState(bookingId, { status: 'canceled' });
 
         showToast('ยกเลิกการจองคลาสเรียนสำเร็จแล้วครับ', 'success');
         
