@@ -104,6 +104,21 @@ function getBookingState() {
     return bookingState;
 }
 
+// ==========================================
+// ★ [Phase 2 — ข้อ 9] Auth Guard
+// ตรวจสอบสิทธิ์ก่อนเข้าหน้าลับ (เช่น profile, payment)
+// ถ้ายังไม่ได้ล็อกอิน จะดีดกลับไปหน้า login ทันที
+// ==========================================
+function requireAuth() {
+    const token = getAuthToken();
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (!token || !isLoggedIn) {
+        window.location.href = 'login.html';
+        return false;
+    }
+    return true;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // ★ [Phase 2 — ข้อ 3] กู้คืนสถานะการจองจาก localStorage ก่อนทำอย่างอื่น (Hydration)
     hydrateBookingState();
@@ -135,6 +150,14 @@ document.addEventListener('DOMContentLoaded', () => {
             loginBtn.classList.remove('d-none');
             userMenu.classList.add('d-none');
         }
+    }
+
+    // ★ [Phase 2 — ข้อ 9] Auth Guard: ตรวจสิทธิ์ก่อนเข้าหน้า protected
+    // ถ้าอยู่หน้า profile หรือ payment แล้วยังไม่ได้ล็อกอิน → ดีดกลับไป login
+    const currentPage = window.location.pathname.split('/').pop();
+    const protectedPages = ['profile.html', 'payment.html'];
+    if (protectedPages.includes(currentPage)) {
+        if (!requireAuth()) return; // หยุดทำงานทั้งหมดถ้ายังไม่ได้ล็อกอิน
     }
 
     // สั่งให้ฟังก์ชันดึงข้อมูลคลาสเรียนทั้งหมดทำงาน (ถ้ามีฟังก์ชันนี้อยู่ในไฟล์)
