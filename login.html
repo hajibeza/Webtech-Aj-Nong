@@ -50,49 +50,60 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // API Base URL สำหรับใช้เรียกเข้า API ยืนยันสิทธิ์หลังบ้าน
         const API_BASE_URL = 'http://localhost:3000';
 
+        // ฟังก์ชันช่วยแสดงกล่องข้อความแจ้งเตือนสีแดง/สีส้มบนหน้าจอเมื่อล็อกอินไม่สำเร็จ
         function showLoginAlert(message, type) {
             const alertEl = document.getElementById('loginAlert');
-            alertEl.className = `alert alert-${type}`;
-            alertEl.textContent = message;
-            alertEl.classList.remove('d-none');
+            alertEl.className = `alert alert-${type}`; // สลับคลาสสีแจ้งเตือน (เช่น alert-danger / alert-warning)
+            alertEl.textContent = message; // พิมพ์ข้อความคำเตือน
+            alertEl.classList.remove('d-none'); // ดึงคลาสซ่อนออกเพื่อให้มองเห็นกล่องเตือน
         }
 
+        // ฟังก์ชันประมวลผลการล็อกอิน ยิงตรวจสอบข้อมูลกับเซิร์ฟเวอร์
         async function doLogin(expectedRole) {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
+            const email = document.getElementById('email').value.trim(); // อ่านค่าอีเมลที่กรอกและตัดช่องว่าง
+            const password = document.getElementById('password').value; // อ่านค่ารหัสผ่านที่กรอก
 
             try {
+                // ยิง API แบบ POST ไปยังเซิร์ฟเวอร์ที่เส้นล็อกอิน
                 const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password }),
+                    body: JSON.stringify({ email, password }), // แนบชุดข้อมูลเมลและรหัสส่งไป
                 });
 
+                // แปลงผลการตอบกลับจากเซิร์ฟเวอร์เป็น JSON Object
                 const result = await response.json();
 
                 if (!response.ok || !result.success) {
+                    // หากตอบกลับสถานะไม่สำเร็จ ให้เปิดการแจ้งเตือนสีแดงบอกผู้ใช้
                     showLoginAlert(result.message || 'เข้าสู่ระบบไม่สำเร็จ', 'danger');
                     return;
                 }
 
+                // ดึง JWT Token และข้อมูลโปรไฟล์สิทธิ์ของผู้ใช้ที่หลังบ้านตอบกลับมา
                 const { token, user } = result.data;
 
+                // ตรวจเช็ค หากคลิกปุ่มแอดมินแต่สิทธิ์ในฐานข้อมูลไม่ใช่แอดมิน ให้ปฏิเสธการเข้าล็อกอิน
                 if (expectedRole === 'admin' && user.role !== 'admin') {
                     showLoginAlert('บัญชีนี้ไม่มีสิทธิ์แอดมิน', 'warning');
                     return;
                 }
 
-                localStorage.setItem('token', token);
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('userId', String(user.id));
-                localStorage.setItem('userName', user.name);
+                // บันทึก JWT Token และค่าข้อมูล session ลงใน localStorage เพื่อใช้ยืนยันตัวตนใน API เส้นอื่นๆ
+                localStorage.setItem('token', token); // เก็บ Token สำหรับส่งแนบไปใน API Headers
+                localStorage.setItem('isLoggedIn', 'true'); // เซ็ตค่าสถานะเข้าสู่ระบบสำเร็จ
+                localStorage.setItem('userId', String(user.id)); // เซ็ตบันทึกรหัสประจำตัวผู้ใช้
+                localStorage.setItem('userName', user.name); // เซ็ตชื่อเล่นผู้ใช้งานไปโชว์
 
                 if (user.role === 'admin') {
+                    // หากผู้ใช้มีระดับสิทธิ์เป็น admin ให้เซ็ตสถานะแอดมินและส่งผู้ใช้ไปหน้า Dashboard
                     localStorage.setItem('isAdmin', 'true');
                     window.location.href = 'admin-dashboard.html';
                 } else {
+                    // หากเป็นผู้ใช้/นักเรียนทั่วไป ให้ลบเศษแอดมินออกและนำทางกลับไปยังหน้าหลัก
                     localStorage.removeItem('isAdmin');
                     window.location.href = 'index.html';
                 }
@@ -102,15 +113,18 @@
             }
         }
 
+        // ตัวดักฟัง Event เมื่อกดยื่นฟอร์มข้อมูลนักเรียน (Submit)
         document.getElementById('loginForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            doLogin('user');
+            e.preventDefault(); // ป้องกันหน้าเพจรีเฟรชตัวเองตามกลไกฟอร์มปกติ
+            doLogin('user'); // ดำเนินการล็อกอินสิทธิ์นักเรียนทั่วไป
         });
 
+        // ตัวดักฟัง Event เมื่อผู้ใช้คลิกปุ่มล็อกอินประเภทผู้ดูแลระบบ (Admin)
         document.getElementById('adminLoginBtn').addEventListener('click', () => {
+            // กรอกค่าอีเมลและรหัสแอดมินจำลองลงใน Input โดยอัตโนมัติเพื่ออำนวยความสะดวก
             document.getElementById('email').value = 'admin@example.com';
             document.getElementById('password').value = 'admin123';
-            doLogin('admin');
+            doLogin('admin'); // ดำเนินการล็อกอินสิทธิ์แอดมินระบบ
         });
     </script>
 </body>

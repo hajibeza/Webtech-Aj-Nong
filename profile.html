@@ -84,15 +84,17 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/main.js"></script>
     <script>
-        // ★ เช็คว่าเพิ่งจ่ายเงินสำเร็จมาจากหน้า payment หรือไม่
+        // ★ ตรวจสอบและดึงพารามิเตอร์จาก URL ปัจจุบัน
         const urlParams = new URLSearchParams(window.location.search);
+        // เช็คว่าผู้ใช้เพิ่งนำทางย้ายหน้ามาจากกระบวนการชำระเงินสำเร็จ (?payment=success) หรือไม่
         if (urlParams.get('payment') === 'success') {
             document.addEventListener('DOMContentLoaded', () => {
+                // หากเพิ่งชำระเงินเรียบร้อย ให้ยิงแสดงผล Toast แจ้งเตือนสีเขียวเพื่อต้อนรับความสำเร็จ
                 showToast('ชำระเงินสำเร็จ! ที่นั่งของคุณได้รับการยืนยันแล้ว', 'success');
             });
         }
-        // หมายเหตุ: cancelBooking() ถูกย้ายไปอยู่ใน main.js แล้ว
-        // เพื่อให้ยิง API จริงแทนการแก้ DOM แบบ Mock
+        // หมายเหตุ: ฟังก์ชันคีย์เวิร์ดอย่าง cancelBooking() ถูกย้ายไปเขียนไว้ที่ main.js ทั้งหมดแล้ว
+        // เพื่อทำหน้าที่ยิงส่ง API จริงแทนระบบจำลองแก้ DOM แบบ Mockup เดิมครับ
     </script>
 </body>
 </html>
