@@ -148,25 +148,26 @@
         // ===========================================
         // ส่วน Timer — นับถอยหลัง 5 นาที (ยังคงเหมือนเดิม)
         // ===========================================
-        let timeLeft = 300;
-        const timerElement = document.getElementById('timer');
+        let timeLeft = 300; // กำหนดเวลาเริ่มต้นที่ 5 นาที (300 วินาที)
+        const timerElement = document.getElementById('timer'); // ดึง Element แสดงผลตัวเลขเวลานับถอยหลัง
         let timerId;
 
         function updateTimer() {
-            const minutes = Math.floor(timeLeft / 60);
-            let seconds = timeLeft % 60;
-            if (seconds < 10) seconds = '0' + seconds;
-            timerElement.textContent = `0${minutes}:${seconds}`;
-            if (timeLeft <= 60) timerElement.classList.add('fade-in');
+            const minutes = Math.floor(timeLeft / 60); // คำนวณหาจำนวนนาที
+            let seconds = timeLeft % 60; // คำนวณหาจำนวนวินาทีที่เหลือเศษ
+            if (seconds < 10) seconds = '0' + seconds; // หากวินาทีมีหลักเดียว ให้เติมเลข 0 นำหน้า
+            timerElement.textContent = `0${minutes}:${seconds}`; // เขียนตัวเลขนับถอยหลังลงบนหน้าเว็บ
+            if (timeLeft <= 60) timerElement.classList.add('fade-in'); // หากต่ำกว่า 1 นาที ให้แสดงเอฟเฟกต์กะพริบกระตุ้นผู้ใช้
             if (timeLeft === 0) {
+                // หากเวลาหมด ให้เคลียร์ตัวนับเวลาถอยหลังและเปิดกล่อง Modal หมดเวลา
                 clearInterval(timerId);
                 const timeoutModal = new bootstrap.Modal(document.getElementById('timeoutModal'));
                 timeoutModal.show();
             } else {
-                timeLeft--;
+                timeLeft--; // ลดเวลาลงทีละ 1 วินาที
             }
         }
-        timerId = setInterval(updateTimer, 1000);
+        timerId = setInterval(updateTimer, 1000); // สั่งรันอัปเดตตัวนับเวลาทุกๆ 1 วินาที (1000ms)
 
         // ===========================================
         // ★ ส่วน Gate Layer: ดึงข้อมูล Booking จาก API มาแสดงผลจริง
@@ -178,10 +179,11 @@
         async function loadPaymentDetails() {
             // ขั้นที่ 1: อ่าน bookingId จาก URL Parameter
             // เช่น payment.html?bookingId=BK-004 → ได้ค่า "BK-004"
-            const urlParams = new URLSearchParams(window.location.search);
-            const bookingId = urlParams.get('bookingId');
+            const urlParams = new URLSearchParams(window.location.search); // เตรียมเครื่องมือดึงพารามิเตอร์ URL
+            const bookingId = urlParams.get('bookingId'); // แกะอ่านค่าของตัวแปร bookingId ออกมา
 
             if (!bookingId) {
+                // หากไม่มีรหัสใบจองแนบมา ให้ขึ้นแจ้งเตือนด่วนและถอยกลับหน้าหลัก
                 showToast('ไม่พบรหัสใบจอง กรุณาทำรายการจองใหม่ครับ', 'danger');
                 setTimeout(() => {
                     window.location.href = 'index.html';
@@ -189,28 +191,31 @@
                 return;
             }
 
-            // เก็บไว้ใช้ตอน confirmPayment()
+            // บันทึกรหัสการจองปัจจุบันลงตัวแปรกลางเพื่อเก็บไว้กดยืนยันชำระเงินทีหลัง
             currentBookingId = bookingId;
 
             try {
+                // ยิง GET API ไปเรียกใบจองทั้งหมดของผู้ใช้มาเพื่อกรองหาใบจองนี้
                 const response = await fetch(`${API_BASE_URL}/api/bookings`, {
-                    headers: getAuthHeaders()
+                    headers: getAuthHeaders() // แนบ Token ล็อกอินใน Header
                 });
 
                 if (!response.ok) {
                     throw new Error(`API ตอบกลับสถานะ ${response.status}`);
                 }
 
+                // แปลงผลการตอบกลับจากหลังบ้านเป็น JSON
                 const data = await response.json();
                 if (!data.success) {
                     throw new Error(data.message || 'Failed to load bookings');
                 }
                 const bookings = data.data?.items || [];
 
-                // ขั้นที่ 3: กรองหา booking ที่ตรงกับ bookingId ที่เราต้องการ
+                // ขั้นที่ 3: กรองหาข้อมูลใบจองตัวที่ตรงกับรหัส bookingId ที่เราแกะมาจาก URL
                 const booking = bookings.find(b => b.id === bookingId);
 
                 if (!booking) {
+                    // หากไม่พบใบจองนี้ในระบบ ให้แจ้งเตือนและย้ายหน้ากลับไปจุดเริ่มต้น
                     showToast('ไม่พบข้อมูลใบจองนี้ในระบบครับ', 'danger');
                     setTimeout(() => {
                         window.location.href = 'index.html';
@@ -218,29 +223,30 @@
                     return;
                 }
 
-                // ขั้นที่ 4: ดึงข้อมูลคลาสเรียนที่เกี่ยวข้องมาเพิ่ม (เพื่อได้รูปภาพ, วันที่)
+                // ขั้นที่ 4: ดึงข้อมูลคลาสเรียนย่อยเพิ่มเติม (เนื่องจาก API จองไม่ให้รูปภาพและตารางเวลามาด้วย)
                 let classData = null;
                 if (booking.classInfo && booking.classInfo.id) {
+                    // ยิง GET API ดึงรายละเอียดรายวิชาของคลาสเรียนนี้
                     const classResponse = await fetch(`${API_BASE_URL}/api/classes/${booking.classInfo.id}`);
                     if (classResponse.ok) {
                         const classResult = await classResponse.json();
                         if (classResult.success) {
-                            classData = classResult.data;
+                            classData = classResult.data; // บันทึกรายละเอียดคลาสที่ได้
                         }
                     }
                 }
 
-                // ขั้นที่ 5: เอาข้อมูลจริงไปอัปเดต HTML บนหน้า payment
+                // ขั้นที่ 5: เอาข้อมูลจริงไปเขียนระบายลง Element HTML ต่างๆ บนหน้าชำระเงิน
                 const classTitle = (booking.classInfo && booking.classInfo.title) || 'ไม่ทราบชื่อคลาส';
                 const amount = booking.amount || 0;
 
-                document.getElementById('payment-class-title').textContent = classTitle;
-                document.getElementById('payment-price').textContent = `฿${amount.toLocaleString()}`;
-                document.getElementById('payment-total').textContent = `฿${amount.toLocaleString()}`;
+                document.getElementById('payment-class-title').textContent = classTitle; // เขียนชื่อคลาสเรียน
+                document.getElementById('payment-price').textContent = `฿${amount.toLocaleString()}`; // แสดงราคาเดิม
+                document.getElementById('payment-total').textContent = `฿${amount.toLocaleString()}`; // แสดงยอดชำระสุทธิ
                 document.getElementById('payment-booking-id').innerHTML =
-                    `<i class="bi bi-ticket-perforated me-1"></i> รหัสใบจอง: ${booking.id}`;
+                    `<i class="bi bi-ticket-perforated me-1"></i> รหัสใบจอง: ${booking.id}`; // แสดงรหัสใบจอง
 
-                // ถ้าดึงข้อมูลคลาสสำเร็จ → ใส่รูปภาพและวันที่
+                // หากยิง API ดึงข้อมูลคลาสย่อยสำเร็จ ให้นำมาเรนเดอร์รูปคอร์สและวันที่เรียน
                 if (classData) {
                     document.getElementById('payment-class-img').src = classData.imageUrl;
                     document.getElementById('payment-class-date').textContent = classData.date;
@@ -252,40 +258,43 @@
             }
         }
 
-        // ★ สั่งให้ฟังก์ชันดึงข้อมูลทำงานทันทีเมื่อหน้าเว็บโหลดเสร็จ
+        // ★ สั่งให้ฟังก์ชันยิง API ดึงรายละเอียดและยอดเงินทำงานทันทีเมื่อหน้าเพจโหลดเสร็จ
         loadPaymentDetails();
 
         // ===========================================
         // ★ ส่วน Gate Layer: ยืนยันการชำระเงิน
         // ===========================================
         async function confirmPayment() {
+            // หยุดตัวเลขนับเวลาถอยหลังทันทีเมื่อกดยืนยันชำระเงิน
             clearInterval(timerId);
 
-            const btn = event.target;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> กำลังประมวลผล...';
-            btn.disabled = true;
+            const btn = event.target; // ดึง Element ปุ่มยืนยันชำระเงินที่ถูกกด
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> กำลังประมวลผล...'; // แสดง Spinner หมุนติ้ว
+            btn.disabled = true; // ล็อกปุ่มป้องกันผู้ใช้กดเบิ้ลส่งข้อมูลซ้ำ
 
             try {
-                // ยิง API อัปเดตสถานะใบจองเป็นชำระเงินเรียบร้อย (paid)
+                // ยิง API แบบ PUT เพื่อไปแจ้งอัปเดตสเตตัสใบจองนี้เป็น paid (ชำระเงินเสร็จสิ้น)
                 const response = await fetch(`${API_BASE_URL}/api/bookings/${currentBookingId}`, {
                     method: 'PUT',
                     headers: getAuthHeaders(),
-                    body: JSON.stringify({ status: 'paid' })
+                    body: JSON.stringify({ status: 'paid' }) // ส่งข้อมูลสถานะ paid ใน Request Body
                 });
 
+                // แปลงคำตอบรับเป็น JSON
                 const result = await response.json();
                 if (!response.ok || !result.success) {
                     throw new Error(result.message || `API ตอบกลับสถานะ ${response.status}`);
                 }
 
+                // หากสำเร็จ เปลี่ยนเส้นทางผู้ใช้ไปยังหน้า Profile พร้อมแนบสถานะความสำเร็จเพื่อโชว์ Toast สีเขียว
                 window.location.href = 'profile.html?payment=success';
 
             } catch (error) {
                 console.error('เกิดข้อผิดพลาดในการยืนยันการชำระเงิน:', error);
+                // แสดงการแจ้งเตือนผิดพลาด ปล่อยปุ่มล็อก และรันตัวนับเวลาถอยหลังต่อจากจุดเดิม
                 showToast('เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์ กรุณาลองใหม่อีกครั้งครับ', 'danger');
                 btn.innerHTML = 'ยืนยันการชำระเงิน';
                 btn.disabled = false;
-                // สั่งให้นับเวลาถอยหลังต่อหากเกิดข้อผิดพลาด
                 timerId = setInterval(updateTimer, 1000);
             }
         }

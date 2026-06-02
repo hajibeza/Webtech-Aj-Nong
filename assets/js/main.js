@@ -10,13 +10,17 @@ let classesCache = [];
 
 // ★ JWT helpers for protected API calls
 function getAuthToken() {
+    // ดึง JWT Token ที่เซฟไว้ใน localStorage ออกมาใช้งาน
     return localStorage.getItem('token');
 }
 
 function getAuthHeaders() {
+    // สร้าง Header สำหรับยิง API ในรูปแบบ JSON
     const headers = { 'Content-Type': 'application/json' };
+    // ดึง Token ปัจจุบันออกมา
     const token = getAuthToken();
     if (token) {
+        // ถ้ามี Token อยู่ ให้แนบ Bearer Token ใน Authorization Header เพื่อยืนยันตัวตนกับหลังบ้าน
         headers['Authorization'] = `Bearer ${token}`;
     }
     return headers;
@@ -44,6 +48,7 @@ const INSTRUCTOR_MAP = {
 // ★ ฟังก์ชันดึง userId ที่ล็อกอินอยู่จาก localStorage
 // แทนที่จะฮาร์ดโค้ด 'u-1' กระจายไปทั่ว เราเรียกฟังก์ชันนี้แทน
 function getCurrentUserId() {
+    // ดึง userId ของผู้ใช้ปัจจุบันที่เซฟไว้ตอนล็อกอินสำเร็จ
     return localStorage.getItem('userId');
 }
 
@@ -60,6 +65,7 @@ let bookingState = [];
 // ★ บันทึกสถานะการจองลง localStorage (Persistence)
 // เรียกทุกครั้งที่มีการเปลี่ยนแปลงข้อมูลใน bookingState
 function persistBookingState() {
+    // แปลงอาเรย์ bookingState เป็น JSON String (Serialization) แล้วเซฟลง localStorage เพื่อรักษาข้อมูลไว้
     localStorage.setItem('bookingState', JSON.stringify(bookingState));
 }
 
@@ -67,11 +73,14 @@ function persistBookingState() {
 // เรียกตอนเปิดหน้าเว็บครั้งแรก (DOMContentLoaded) เพื่อให้ข้อมูลไม่หายแม้รีเฟรช
 function hydrateBookingState() {
     try {
+        // ดึงค่า String ของการจองที่เซฟไว้ใน localStorage ออกมา
         const saved = localStorage.getItem('bookingState');
         if (saved) {
+            // แปลง JSON String กลับมาเป็นอาเรย์ในโปรแกรม (Deserialization)
             bookingState = JSON.parse(saved);
         }
     } catch (error) {
+        // หากเกิดข้อผิดพลาดในการโหลด ให้ทำการล้างค่าเป็นอาเรย์ว่างเปล่า
         console.error('ไม่สามารถกู้คืนข้อมูลการจองได้:', error);
         bookingState = [];
     }
@@ -79,31 +88,39 @@ function hydrateBookingState() {
 
 // ★ เพิ่มใบจองใหม่เข้า State กลาง แล้วบันทึกลง localStorage
 function addBookingToState(booking) {
-    // ป้องกันข้อมูลซ้ำ: เช็คว่ามี booking id นี้อยู่แล้วหรือยัง
+    // ป้องกันข้อมูลซ้ำ: เช็คว่ามี booking id นี้อยู่แล้วหรือยังในอาเรย์
     const exists = bookingState.find(b => b.id === booking.id);
     if (!exists) {
+        // ถ้าไม่มีใบจองไอดีนี้ ให้ผลักข้อมูลใบจองใหม่เข้าไปในอาเรย์ bookingState
         bookingState.push(booking);
+        // บันทึกอัปเดตลง localStorage ทันที
         persistBookingState();
     }
 }
 
 // ★ อัปเดตสถานะของใบจองที่มีอยู่แล้ว (เช่น เปลี่ยนจาก pending → canceled)
 function updateBookingInState(bookingId, updates) {
+    // ค้นหาตำแหน่งอินเด็กซ์ของใบจองที่ต้องการอัปเดตในอาเรย์
     const index = bookingState.findIndex(b => b.id === bookingId);
     if (index !== -1) {
+        // ถ้าเจอ ให้ทำการ Merge ข้อมูลใหม่ทับของเดิมโดยใช้ Spread Operator
         bookingState[index] = { ...bookingState[index], ...updates };
+        // บันทึกอัปเดตลง localStorage ทันที
         persistBookingState();
     }
 }
 
 // ★ ลบใบจองออกจาก State กลาง (ใช้กรณีพิเศษ)
 function removeBookingFromState(bookingId) {
+    // กรองข้อมูลโดยตัดใบจองที่มีรหัสที่เลือกออกไป
     bookingState = bookingState.filter(b => b.id !== bookingId);
+    // บันทึกอัปเดตลง localStorage ทันที
     persistBookingState();
 }
 
 // ★ ดึงข้อมูลการจองทั้งหมดจาก State กลาง
 function getBookingState() {
+    // ส่งอาเรย์สถานะการจองทั้งหมดออกไปใช้งาน
     return bookingState;
 }
 
@@ -113,12 +130,16 @@ function getBookingState() {
 // ถ้ายังไม่ได้ล็อกอิน จะดีดกลับไปหน้า login ทันที
 // ==========================================
 function requireAuth() {
+    // ตรวจสอบ JWT Token สิทธิ์ผู้ใช้งาน
     const token = getAuthToken();
+    // ตรวจสอบตัวแปรเช็คสถานะการล็อกอิน
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     if (!token || !isLoggedIn) {
+        // หากไม่มี Token หรือยังไม่ได้ล็อกอิน ให้เปลี่ยนหน้าดีดผู้ใช้กลับไปที่หน้าล็อกอินทันที
         window.location.href = 'login.html';
         return false;
     }
+    // ผ่านการเช็คสิทธิ์ (ส่งผลลัพธ์ว่าผ่าน)
     return true;
 }
 
@@ -126,30 +147,33 @@ document.addEventListener('DOMContentLoaded', () => {
     // ★ [Phase 2 — ข้อ 3] กู้คืนสถานะการจองจาก localStorage ก่อนทำอย่างอื่น (Hydration)
     hydrateBookingState();
 
-    // Initialize all Bootstrap Toasts
+    // เริ่มต้นใช้งาน Bootstrap Toasts ทั้งหมดในหน้าจอ
     var toastElList = [].slice.call(document.querySelectorAll('.toast'))
     var toastList = toastElList.map(function (toastEl) {
         return new bootstrap.Toast(toastEl)
     });
 
-    // Check login state (mock)
+    // ดึงเช็คสถานะล็อกอินและแอดมินปัจจุบันจาก localStorage
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     const isAdmin = localStorage.getItem('isAdmin') === 'true';
 
-    // Update navbar based on login state
+    // ดึงอ้างอิง Element เมนูผู้ใช้และปุ่มเข้าสู่ระบบใน Navbar
     const userMenu = document.getElementById('user-menu');
     const loginBtn = document.getElementById('login-btn');
     const adminLink = document.getElementById('admin-link');
 
     if (userMenu && loginBtn) {
         if (isLoggedIn) {
+            // หากล็อกอินอยู่ ให้ซ่อนปุ่มเข้าสู่ระบบ และโชว์ปุ่มเมนูโปรไฟล์ของผู้ใช้
             loginBtn.classList.add('d-none');
             userMenu.classList.remove('d-none');
 
+            // หากผู้ใช้เป็น Admin ให้เปิดการลิงก์ไปหน้าระบบจัดการหลังบ้าน
             if (isAdmin && adminLink) {
                 adminLink.classList.remove('d-none');
             }
         } else {
+            // หากยังไม่ล็อกอิน ให้โชว์ปุ่มล็อกอินปกติ และซ่อนเมนูผู้ใช้ไว้
             loginBtn.classList.remove('d-none');
             userMenu.classList.add('d-none');
         }
@@ -180,8 +204,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
-// Function to handle mock logout
+// ฟังก์ชันลบตัวแปรออกจากหน่วยความจำและทำการออกจากระบบ
 function handleLogout() {
+    // ลบตัวแปรสถานะและข้อมูลส่วนตัวทั้งหมดออกจาก localStorage เพื่อทำลาย session ล็อกอิน
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('isAdmin');
     localStorage.removeItem('userId');
@@ -190,14 +215,16 @@ function handleLogout() {
     // ★ [Phase 2 — ข้อ 3] ล้างสถานะการจองออกจาก localStorage ตอนออกจากระบบด้วย
     localStorage.removeItem('bookingState');
     bookingState = [];
+    // เปลี่ยนเส้นทางผู้ใช้กลับไปยังหน้าแรก
     window.location.href = 'index.html';
 }
 
-// Show Toast helper
+// ฟังก์ชันสร้างและกระตุ้นการแสดงกล่องแจ้งเตือนข้อมูลด่วน Toast แบบสวยงาม
 function showToast(message, type = 'success') {
-    // Check if container exists, if not create it
+    // ดึง HTML Container ของตัวแจ้งเตือนด่วน (Toast)
     let toastContainer = document.getElementById('toast-container');
     if (!toastContainer) {
+        // หากยังไม่มี ให้สร้างขึ้นใหม่ใน DOM แล้วแปะไว้ที่มุมล่างขวาของหน้าจอ
         toastContainer = document.createElement('div');
         toastContainer.id = 'toast-container';
         toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
@@ -205,9 +232,12 @@ function showToast(message, type = 'success') {
         document.body.appendChild(toastContainer);
     }
 
+    // สุ่มสร้างรหัส ID เพื่อป้องกันการทับซ้อนกันเมื่อมี Toast แสดงขึ้นมาหลายตัวพร้อมกัน
     const toastId = 'toast-' + Date.now();
+    // กำหนดสีพื้นหลังตามประเภทแจ้งเตือน (สำเร็จ = เขียว, ผิดพลาด = แดง, ปกติ = น้ำเงิน)
     const bgClass = type === 'success' ? 'bg-success' : (type === 'danger' ? 'bg-danger' : 'bg-primary');
 
+    // ประกอบร่างโครงสร้าง HTML ของ Toast
     const toastHTML = `
         <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0 fade-in" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
@@ -219,12 +249,14 @@ function showToast(message, type = 'success') {
         </div>
     `;
 
+    // ใส่ HTML ใหม่ลงในกล่องบรรจุ
     toastContainer.insertAdjacentHTML('beforeend', toastHTML);
     const toastElement = document.getElementById(toastId);
+    // สั่งแสดงผลแจ้งเตือนด้วย Bootstrap Toast (แสดงผลค้างไว้ 3 วินาที)
     const bsToast = new bootstrap.Toast(toastElement, { delay: 3000 });
     bsToast.show();
 
-    // Remove from DOM after hide
+    // ลบ Element นั้นออกจากหน้าจอทิ้งไปเพื่อป้องกัน RAM เต็มเมื่อซ่อนการแจ้งเตือนแล้ว
     toastElement.addEventListener('hidden.bs.toast', () => {
         toastElement.remove();
     });
@@ -232,6 +264,7 @@ function showToast(message, type = 'success') {
 
 // 1. สร้างฟังก์ชันสำหรับยิงไปดึงข้อมูลคลาสเรียนจากหลังบ้าน
 async function loadAndDisplayClasses() {
+    // ดึง Element คอนเทนเนอร์สำหรับแสดงรายการคลาสเรียน
     const container = document.getElementById('class-list-container');
     if (!container) return; // ดักไว้เผื่อกรณีที่โหลดหน้าอื่นที่ไม่มีคอนเทนเนอร์นี้ จะได้ไม่เกิด Error ใน Console
 
@@ -246,28 +279,30 @@ async function loadAndDisplayClasses() {
     `;
 
     try {
-        // ยิงไปหา API เส้นของเพื่อนหลังบ้าน
+        // ยิงคำร้องขอ GET ไปยัง API เส้นรวมคลาสเรียนทั้งหมดของหลังบ้าน
         const response = await fetch(`${API_BASE_URL}/api/classes`);
         // ★ เช็คสถานะ response ก่อนอ่าน JSON เพื่อป้องกันกรณี Backend ส่ง 500 กลับมา
         if (!response.ok) {
             throw new Error(`API ตอบกลับสถานะ ${response.status}`);
         }
+        // แปลงผลการตอบกลับเป็น JSON Object
         const data = await response.json();
         if (!data.success) {
             throw new Error(data.message || 'Failed to load classes');
         }
 
-        // เก็บข้อมูลเข้าแคชส่วนกลาง
+        // เก็บข้อมูลรายการคลาสเรียนเข้าตัวแปรแคชสำหรับประมวลผลการค้นหา/ฟิลเตอร์
         classesCache = data.data?.items || [];
 
-        // สั่งวาดแสดงผลคลาสเรียนครั้งแรก
+        // สั่งวาดแสดงผลคลาสเรียนครั้งแรกบนหน้าแรก
         renderClasses(classesCache);
 
-        // ตั้งค่าตัวดักจับอีเวนต์ฟิลเตอร์ค้นหาและคัดจัดเรียง
+        // ติดตั้งตัวรับฟังอีเวนต์สำหรับฟิลเตอร์ค้นหาและการจัดเรียงราคา
         setupFilteringListeners();
 
     } catch (error) {
         console.error('Error fetching classes:', error);
+        // แสดงข้อความผิดพลาดบนจอหากดึง API ไม่สำเร็จ
         container.innerHTML = `<div class="col-12 text-center text-danger"><p><i class="bi bi-exclamation-triangle-fill"></i> เกิดข้อผิดพลาดในการโหลดข้อมูลระบบ</p></div>`;
     }
 }
@@ -277,9 +312,11 @@ function renderClasses(classList) {
     const container = document.getElementById('class-list-container');
     if (!container) return;
 
+    // ล้าง HTML เดิมออกทั้งหมดเพื่อเตรียมวาดอันที่กรองแล้วใหม่
     container.innerHTML = '';
 
     if (classList.length === 0) {
+        // แสดงหน้าว่างพร้อมแจ้งเตือนในกรณีที่ไม่พบผลลัพธ์
         container.innerHTML = `
             <div class="col-12 text-center text-muted py-5">
                 <i class="bi bi-search fs-1 d-block mb-3 text-secondary"></i>
@@ -297,11 +334,12 @@ function renderClasses(classList) {
         const badgeColor = isFull ? 'bg-danger' : 'bg-warning text-dark';
         const badgeText = isFull ? 'เต็มแล้ว' : `${item.seatsTaken}/${item.capacity}`;
 
-        // Logic ปรับแต่งปุ่มกด
+        // Logic ปรับแต่งปุ่มกด: หากคลาสเรียนเต็ม ให้เปลี่ยนปุ่มเป็น disabled สีเทา หากยังว่างให้เปิดลิงก์ปกติ
         const buttonHtml = isFull
             ? `<button class="btn btn-secondary" disabled>ที่นั่งเต็ม</button>`
             : `<a href="class-detail.html?id=${item.id}" class="btn btn-primary-custom">ดูรายละเอียด</a>`;
 
+        // ประกอบโครงสร้างการ์ด HTML ด้วย template literal
         const cardHtml = `
             <div class="col-md-6 col-lg-4">
                 <div class="card h-100 border-0 glass-card">
@@ -333,7 +371,9 @@ function renderClasses(classList) {
 function debounce(func, delay) {
     let timeoutId;
     return function (...args) {
+        // ล้างเวลาถอยหลังเดิมทิ้งไปก่อนเพื่อเตรียมเริ่มนับใหม่เมื่อมี Event พิมพ์เข้ามาถี่ๆ
         clearTimeout(timeoutId);
+        // ตั้งเวลานับถอยหลังใหม่ เมื่อครบเวลาหน่วง (delay) ให้เริ่มประมวลผลทันที
         timeoutId = setTimeout(() => func.apply(this, args), delay);
     };
 }
@@ -344,13 +384,14 @@ function setupFilteringListeners() {
     const sortSelect = document.querySelector('.mb-4 select');
 
     if (searchInput) {
-        // ใช้ Debounce 300ms หน่วงเวลาพิมพ์ก่อนฟิลเตอร์เพื่อความลื่นไหลประหยัดทรัพยากรเครื่อง
+        // ใช้ Debounce 300ms ดัก Event การพิมพ์ค้นหาเพื่อความลื่นไหลประหยัดทรัพยากรการเรนเดอร์จอ
         searchInput.addEventListener('input', debounce(() => {
             applyFiltersAndSort();
         }, 300));
     }
 
     if (sortSelect) {
+        // ดัก Event dropdown จัดเรียงราคาเมื่อผู้ใช้เลือกเปลี่ยนค่า
         sortSelect.addEventListener('change', () => {
             applyFiltersAndSort();
         });
@@ -362,9 +403,10 @@ function applyFiltersAndSort() {
     const searchInput = document.querySelector('.hero-section input[type="text"]');
     const sortSelect = document.querySelector('.mb-4 select');
 
+    // คัดลอกอาเรย์จากแคชดั้งเดิมมาใช้งานเพื่อไม่ให้ข้อมูลดิบเสียหาย
     let filtered = [...classesCache];
 
-    // 1. คัดกรองด้วยคีย์เวิร์ด (ค้นหาได้ทั้ง ชื่อคลาส, ชื่อผู้สอน, และหมวดหมู่)
+    // 1. คัดกรองข้อมูลด้วยคำค้นหา (ค้นหาได้ทั้ง ชื่อวิชา, ชื่อวิทยากร, หรือหมวดหมู่)
     if (searchInput && searchInput.value.trim() !== '') {
         const query = searchInput.value.toLowerCase().trim();
         filtered = filtered.filter(item => 
@@ -374,21 +416,22 @@ function applyFiltersAndSort() {
         );
     }
 
-    // 2. จัดเรียงข้อมูล (Sorting)
+    // 2. จัดเรียงข้อมูลตามเงื่อนไข (Sorting)
     if (sortSelect) {
         const sortValue = sortSelect.value;
         if (sortValue === 'ราคา ต่ำ-สูง') {
+            // สั่งเรียงลำดับราคาจากน้อยไปมาก
             filtered.sort((a, b) => a.price - b.price);
         } else if (sortValue === 'ความนิยมสูงสุด') {
-            // คลาสไหนที่มีที่นั่งถูกจองเยอะกว่า ถือว่ามีความนิยมสูงสุด
+            // เรียงตามจำนวนที่นั่งที่มีคนกดจองเยอะที่สุด
             filtered.sort((a, b) => b.seatsTaken - a.seatsTaken);
         } else {
-            // ค่าเริ่มต้น (เรียงตามคลาสล่าสุด - เรียง ID จากหลังไปหน้า)
+            // ค่าเริ่มต้น (เรียงตามลำดับคลาสใหม่ล่าสุด - เรียง ID ถอยหลัง)
             filtered.sort((a, b) => b.id.localeCompare(a.id));
         }
     }
 
-    // เรนเดอร์อัปเดตหน้าจอทันที
+    // เรนเดอร์ข้อมูลที่กรองและเรียงลำดับใหม่ขึ้นระบายบนหน้าแรก
     renderClasses(filtered);
 }
 
@@ -410,7 +453,7 @@ async function loadSingleClassDetail() {
     if (topicsContainer) {
         topicsContainer.innerHTML = `
             <div class="py-3 text-muted">
-                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
                 กำลังโหลดรายละเอียดหัวข้อเรียนรู้ออนไลน์...
             </div>
         `;
@@ -423,6 +466,7 @@ async function loadSingleClassDetail() {
         // ★ เช็คสถานะ response ทั้งหมด (รวม 404 และ 500)
         if (!response.ok) {
             if (response.status === 404) {
+                // หากไม่พบคลาสเรียนนี้ ให้เตือนด่วนและดีดกลับไปหน้าแรกทันที
                 showToast('ไม่พบข้อมูลคลาสเรียนนี้ในระบบ', 'warning');
                 window.location.href = 'index.html';
                 return;
@@ -430,6 +474,7 @@ async function loadSingleClassDetail() {
             throw new Error(`API ตอบกลับสถานะ ${response.status}`);
         }
 
+        // แปลงข้อมูลผลตอบกลับเป็น JSON
         const result = await response.json();
         if (!result.success) {
             if (response.status === 404) {
@@ -458,6 +503,7 @@ async function loadSingleClassDetail() {
 
         const dateEl = document.getElementById('detail-date');
         if (dateEl) {
+            // จัดการแปลงข้อมูลวันเดือนปีดิบ ให้กลายเป็นรูปแบบภาษาไทยที่อ่านง่าย
             const classDate = new Date(item.date);
             const thaiMonths = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
             const formattedDate = `${classDate.getDate()} ${thaiMonths[classDate.getMonth()]} ${classDate.getFullYear() + 543}`;
@@ -469,7 +515,7 @@ async function loadSingleClassDetail() {
             timeEl.innerHTML = `<i class="bi bi-clock me-2"></i> ${item.timeStart} - ${item.timeEnd} น.`;
         }
 
-        // [เพิ่มเติมใหม่] อัปเดตตัวเตือนที่นั่งเหลือตามจริงอย่างยืดหยุ่น
+        // [เพิ่มเติมใหม่] อัปเดตตัวเตือนที่นั่งเหลือตามจริงอย่างยืดหยุ่น (ป้ายสีแดงเตือนเมื่อที่นั่งเหลือน้อย)
         const seatsWarningEl = document.getElementById('detail-seats-warning');
         if (seatsWarningEl) {
             if (item.seatsAvailable <= 0) {
@@ -485,6 +531,7 @@ async function loadSingleClassDetail() {
         }
 
         // [เพิ่มเติมใหม่] อัปเดตข้อมูลและโปรไฟล์ของผู้สอนแบบ Dynamic
+        // หากชื่อย่อไม่มีใน Dictionary จะใช้ชื่อย่อจาก API และภาพดีฟอลต์มาเป็น Instructor Info สำรอง
         const instructorInfo = INSTRUCTOR_MAP[item.instructor] || {
             name: `อ. ${item.instructor}`,
             role: 'วิทยากรผู้เชี่ยวชาญ',
@@ -549,8 +596,9 @@ async function processClassBooking(classId) {
     // ตรวจสอบสิทธิ์: ดึงสถานะการล็อกอินปัจจุบันจาก localStorage
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     if (!isLoggedIn) {
+        // หากผู้ใช้ยังไม่ได้ล็อกอิน ให้ขึ้นเตือนและบังคับดีดไปหน้า login
         showToast('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ', 'warning');
-        window.location.href = 'login.html'; // ส่งไปหน้าล็อกอิน
+        window.location.href = 'login.html';
         return;
     }
 
@@ -562,20 +610,24 @@ async function processClassBooking(classId) {
     }
 
     try {
+        // ส่ง Request ยิง API เส้นจองคลาสเรียน ด้วยโมเดลแบบ POST
         const response = await fetch(`${API_BASE_URL}/api/bookings`, {
             method: 'POST',
             headers: getAuthHeaders(),
             body: JSON.stringify({ classId })
         });
 
+        // แปลงผลลัพธ์เป็น JSON Object
         const result = await response.json();
 
         if (response.status === 201 && result.success) {
-            // ★ [Phase 2 — ข้อ 3] เพิ่มใบจองใหม่เข้า State กลาง + บันทึกลง localStorage
+            // ★ [Phase 2 — ข้อ 3] เพิ่มใบจองใหม่เข้า State กลาง + บันทึกลง localStorage (State Continuity)
             addBookingToState(result.data);
+            // เปลี่ยนเส้นทางผู้ใช้ไปยังหน้า payment พร้อมแนบรหัสใบจองไปด้วย
             window.location.href = `payment.html?bookingId=${result.data.id}`;
         }
         else if (response.status === 409) {
+            // ป้องกันกรณีปุ่มยังไม่เป็นสีเทาแต่ที่นั่งจองเต็มกะทันหันขณะส่งคำร้องขอ (409 Conflict)
             showToast(result.message || 'ขออภัยด้วยครับ! คลาสเรียนนี้เต็มแล้ว', 'danger');
             window.location.reload();
         }
@@ -615,6 +667,7 @@ async function loadUserBookingHistory() {
     }
 
     try {
+        // ยิง GET API ไปขอดึงข้อมูลใบจองทั้งหมดของผู้ใช้
         const response = await fetch(`${API_BASE_URL}/api/bookings`, {
             headers: getAuthHeaders()
         });
@@ -628,12 +681,12 @@ async function loadUserBookingHistory() {
 
         const bookings = data.data?.items || [];
 
-        // ★ [เพิ่มเติมใหม่สำหรับข้อ 12] คำนวณสถิติจากประวัติการจองจริง
+        // ★ [เพิ่มเติมใหม่สำหรับข้อ 12] คำนวณสถิติจากประวัติการจองจริงของผู้ใช้ (Array processing)
         const activeBookings = bookings.filter(b => b.status !== 'canceled');
         const paidBookings = bookings.filter(b => b.status === 'paid');
         const pendingBookings = bookings.filter(b => b.status === 'pending');
 
-        // ส่งตัวเลขไปอัปเดตบนหน้าเว็บจริงแบบเรียลไทม์
+        // ส่งตัวเลขนับสถิติสดแบบเรียลไทม์ไปอัปเดตบนป้ายสถิติของ Sidebar
         const statTotalEl = document.getElementById('stat-total');
         if (statTotalEl) statTotalEl.innerText = activeBookings.length;
 
@@ -643,10 +696,11 @@ async function loadUserBookingHistory() {
         const statPendingEl = document.getElementById('stat-pending');
         if (statPendingEl) statPendingEl.innerText = pendingBookings.length;
 
-        // เคลียร์พื้นที่ล้างกล่องข้อมูลทดสอบเก่าออกให้หมดก่อน
+        // เคลียร์พื้นที่ล้างกล่องข้อมูลทดสอบเก่าออกให้หมดก่อนแสดงข้อมูลจริง
         container.innerHTML = '';
 
         if (bookings.length === 0) {
+            // แสดงผลกล่องว่างเปล่าในกรณีที่ไม่มีข้อมูลการจอง
             container.innerHTML = `<div class="text-center text-muted py-5"><p><i class="bi bi-folder-x fs-2 d-block mb-2"></i>คุณยังไม่มีประวัติการจองคลาสเรียนในขณะนี้</p></div>`;
             return;
         }
@@ -716,27 +770,30 @@ async function loadUserBookingHistory() {
 
 // ★ ฟังก์ชันส่งคำร้องขอยกเลิกการจองคลาสเรียนไปยังระบบหลังบ้าน (ข้อ 5)
 async function cancelBooking(bookingId) {
+    // ยืนยันการยกเลิกจองคลาสเรียนจากผู้ใช้
     const isConfirm = confirm('คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการจองคลาสเรียนนี้?');
     if (!isConfirm) return;
 
     try {
+        // ยิงโมเดลอัปเดตแบบ PUT เพื่อเปลี่ยนค่าสเตตัสในฐานข้อมูลหลังบ้านเป็น canceled
         const response = await fetch(`${API_BASE_URL}/api/bookings/${bookingId}`, {
             method: 'PUT',
             headers: getAuthHeaders(),
             body: JSON.stringify({ status: 'canceled' })
         });
 
+        // แปลงคำตอบรับเป็น JSON
         const result = await response.json();
         if (!response.ok || !result.success) {
             throw new Error(result.message || `API ตอบกลับสถานะ ${response.status}`);
         }
 
-        // ★ [Phase 2 — ข้อ 3] อัปเดตสถานะใบจองใน State กลางเป็น 'canceled'
+        // ★ [Phase 2 — ข้อ 3] อัปเดตสถานะใบจองใน State กลางของหน้าบ้านเป็น 'canceled'
         updateBookingInState(bookingId, { status: 'canceled' });
 
         showToast('ยกเลิกการจองคลาสเรียนสำเร็จแล้วครับ', 'success');
         
-        // โหลดประวัติการจองใหม่เพื่ออัปเดตหน้าจอแบบเรียลไทม์
+        // โหลดประวัติการจองใหม่เพื่ออัปเดตสถิติและสถานะบนหน้าจอแบบเรียลไทม์ (Reactive UI)
         loadUserBookingHistory();
 
     } catch (error) {
