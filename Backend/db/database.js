@@ -20,9 +20,19 @@ function initSchema() {
 			password_hash TEXT NOT NULL,
 			name TEXT NOT NULL,
 			role TEXT NOT NULL DEFAULT 'user',
+			profile_image TEXT,
 			created_at TEXT NOT NULL DEFAULT (datetime('now'))
 		);
+	`);
 
+	// Add profile_image column if it doesn't exist (for existing databases)
+	try {
+		db.exec(`ALTER TABLE users ADD COLUMN profile_image TEXT;`);
+	} catch (error) {
+		// Ignore error if column already exists
+	}
+
+	db.exec(`
 		CREATE TABLE IF NOT EXISTS classes (
 			id TEXT PRIMARY KEY,
 			title TEXT NOT NULL,
