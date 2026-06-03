@@ -44,20 +44,26 @@ async function login({ email, password }) {
 			.get(email);
 
 		if (!user) {
-			const err = new Error('Invalid email or password');
+			const err = new Error('ไม่พบผู้ใช้');
 			err.statusCode = 401;
 			throw err;
 		}
 
 		const valid = await bcrypt.compare(password, user.password_hash);
 		if (!valid) {
-			const err = new Error('Invalid email or password');
+			const err = new Error('รหัสผ่านไม่ถูกต้อง');
 			err.statusCode = 401;
 			throw err;
 		}
 
+		if (!process.env.JWT_SECRET) {
+			const err = new Error('JWT_SECRET missing in .env');
+			err.statusCode = 500;
+			throw err;
+		}
+
 		const token = jwt.sign(
-			{ id: user.id, email: user.email, role: user.role },
+			{ id: user.id, email: user.email, name: user.name, role: user.role },
 			process.env.JWT_SECRET,
 			{ expiresIn: '24h' }
 		);
@@ -76,4 +82,24 @@ async function login({ email, password }) {
 	}
 }
 
-module.exports = { register, login };
+/**
+ * Get public profile by user id (from JWT).
+ * @param {number} userId
+ */
+function getUserById(userId) {
+	try {
+		const user = db
+			.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?')
+			.get(userId);
+		if (!user) {
+			const err = new Error('User not found');
+			err.statusCode = 404;
+			throw err;
+		}
+		return user;
+	} catch (error) {
+		throw error;
+	}
+}
+
+module.exports = { register, login, getUserById };

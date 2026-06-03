@@ -54,4 +54,22 @@ async function login(req, res) {
 	}
 }
 
-module.exports = { register, login };
+async function getMe(req, res) {
+	try {
+		const user = authService.getUserById(req.user.id);
+		return res.json({
+			success: true,
+			data: user,
+			message: '',
+		});
+	} catch (error) {
+		const status = error.statusCode || 500;
+		return res.status(status).json({
+			success: false,
+			data: null,
+			message: error.message || 'Failed to load profile',
+		});
+	}
+}
+
+module.exports = { register, login, getMe };

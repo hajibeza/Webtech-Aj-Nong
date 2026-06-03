@@ -1,9 +1,15 @@
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
+if (!process.env.JWT_SECRET) {
+	throw new Error('JWT_SECRET missing in .env');
+}
+
 const express = require('express');
 const path = require('path');
 
-require('./db/database');
+const db = require('./db/database');
+const userRows = db.prepare('SELECT id, email, name, role FROM users').all();
+console.log(`[auth] users in database: ${userRows.length}`, userRows);
 
 const authRoutes = require('./routes/auth');
 const classRoutes = require('./routes/classes');
