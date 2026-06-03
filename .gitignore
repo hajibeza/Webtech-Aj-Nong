@@ -1,7 +1,5 @@
 node_modules
 .env
-store.db
-Backend/db/database.db
 file/
 ANALYSIS_RESULTS.md
 WALKTHROUGH.md
