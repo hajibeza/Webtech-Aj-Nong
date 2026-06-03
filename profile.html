@@ -16,6 +16,14 @@
             <a class="navbar-brand fw-bold text-primary" href="index.html">
                 <i class="bi bi-calendar-check me-2"></i>จองคลาส.com
             </a>
+            <div class="d-flex align-items-center">
+                <span class="d-none d-md-inline-block me-3 text-muted" style="font-size: 0.9rem;">
+                    <span class="status-indicator"></span>ระบบออนไลน์ปกติ
+                </span>
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+            </div>
             
             <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
                 <ul class="navbar-nav align-items-center">
@@ -38,8 +46,8 @@
             </div>
         </div>
     </nav>
-
-    <div class="container py-5 fade-in">
+ 
+    <div class="container py-4 py-md-5 fade-in">
         <div class="row g-4">
             <!-- Sidebar Profile -->
             <div class="col-lg-4">
@@ -51,18 +59,18 @@
                     
                     <hr class="my-4">
                     
-                    <div class="d-flex justify-content-between text-center">
-                        <div>
+                    <div class="row g-1 text-center">
+                        <div class="col-4">
                             <h5 class="fw-bold mb-0" id="stat-total">0</h5>
-                            <span class="small text-muted">คลาสทั้งหมด</span>
+                            <span class="small text-muted d-block text-truncate" title="คลาสทั้งหมด">คลาสทั้งหมด</span>
                         </div>
-                        <div>
+                        <div class="col-4 border-start">
                             <h5 class="fw-bold mb-0 text-success" id="stat-paid">0</h5>
-                            <span class="small text-muted">เรียนจบแล้ว</span>
+                            <span class="small text-muted d-block text-truncate" title="ชำระเงินแล้ว">ชำระเงินแล้ว</span>
                         </div>
-                        <div>
+                        <div class="col-4 border-start">
                             <h5 class="fw-bold mb-0 text-warning" id="stat-pending">0</h5>
-                            <span class="small text-muted">กำลังเรียน</span>
+                            <span class="small text-muted d-block text-truncate" title="รอชำระเงิน">รอชำระเงิน</span>
                         </div>
                     </div>
                 </div>
@@ -74,7 +82,6 @@
                     <h4 class="fw-bold mb-4"><i class="bi bi-clock-history me-2 text-primary"></i> ประวัติการจองคลาสเรียน</h4>
                     
                     <div id="booking-history-container"></div>
-
                 </div>
             </div>
         </div>
