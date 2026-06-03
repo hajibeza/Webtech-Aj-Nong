@@ -2,29 +2,14 @@
 // ★ ตัวแปรกลาง (Central Config) สำหรับ API/State Layer
 // ==========================================
 
-// ★ API Base URL — เปลี่ยนตรงนี้จุดเดียว ส่งผลทั้งโปรเจค
-const API_BASE_URL = 'http://localhost:3000';
+// ★ API Base URL — single global (auth.js provides getApiBaseUrl when loaded first)
+const API_BASE_URL =
+    typeof getApiBaseUrl === 'function' ? getApiBaseUrl() : 'http://localhost:3000';
 
 // ★ ตัวแปรเก็บแคชของคลาสเรียนทั้งหมดที่ดึงมาจาก API (สำหรับฟีเจอร์ค้นหา/คัดกรอง)
 let classesCache = [];
 
-// ★ JWT helpers for protected API calls
-function getAuthToken() {
-    // ดึง JWT Token ที่เซฟไว้ใน localStorage ออกมาใช้งาน
-    return localStorage.getItem('token');
-}
-
-function getAuthHeaders() {
-    // สร้าง Header สำหรับยิง API ในรูปแบบ JSON
-    const headers = { 'Content-Type': 'application/json' };
-    // ดึง Token ปัจจุบันออกมา
-    const token = getAuthToken();
-    if (token) {
-        // ถ้ามี Token อยู่ ให้แนบ Bearer Token ใน Authorization Header เพื่อยืนยันตัวตนกับหลังบ้าน
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-    return headers;
-}
+// Auth helpers live in assets/js/auth.js (load before this file)
 
 // ★ Build current page path for post-login redirect (relative, same-origin)
 function getCurrentReturnUrl() {
@@ -83,11 +68,9 @@ const INSTRUCTOR_MAP = {
     }
 };
 
-// ★ ฟังก์ชันดึง userId ที่ล็อกอินอยู่จาก localStorage
-// แทนที่จะฮาร์ดโค้ด 'u-1' กระจายไปทั่ว เราเรียกฟังก์ชันนี้แทน
 function getCurrentUserId() {
-    // ดึง userId ของผู้ใช้ปัจจุบันที่เซฟไว้ตอนล็อกอินสำเร็จ
-    return localStorage.getItem('userId');
+    const user = getCurrentUser();
+    return user?.id != null ? String(user.id) : null;
 }
 
 // ==========================================
@@ -96,15 +79,10 @@ function getCurrentUserId() {
 // ถ้ายังไม่ได้ล็อกอิน จะดีดกลับไปหน้า login ทันที
 // ==========================================
 function requireAuth() {
-    // ตรวจสอบ JWT Token สิทธิ์ผู้ใช้งาน
-    const token = getAuthToken();
-    // ตรวจสอบตัวแปรเช็คสถานะการล็อกอิน
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    if (!token || !isLoggedIn) {
+    if (!isAuthenticated()) {
         redirectToLogin();
         return false;
     }
-    // ผ่านการเช็คสิทธิ์ (ส่งผลลัพธ์ว่าผ่าน)
     return true;
 }
 
@@ -115,9 +93,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return new bootstrap.Toast(toastEl)
     });
 
-    // ดึงเช็คสถานะล็อกอินและแอดมินปัจจุบันจาก localStorage
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    const isAdmin = localStorage.getItem('isAdmin') === 'true';
+    const isLoggedIn = isAuthenticated();
+    const user = getCurrentUser();
+    const isAdmin = user?.role === 'admin';
 
     // ดึงอ้างอิง Element เมนูผู้ใช้และปุ่มเข้าสู่ระบบใน Navbar
     const userMenu = document.getElementById('user-menu');
@@ -129,20 +107,16 @@ document.addEventListener('DOMContentLoaded', () => {
         loginLink.href = getLoginHref();
     }
 
-    if (userMenu && loginBtn) {
+    if (userMenu || loginBtn) {
         if (isLoggedIn) {
-            // หากล็อกอินอยู่ ให้ซ่อนปุ่มเข้าสู่ระบบ และโชว์ปุ่มเมนูโปรไฟล์ของผู้ใช้
-            loginBtn.classList.add('d-none');
-            userMenu.classList.remove('d-none');
-
-            // หากผู้ใช้เป็น Admin ให้เปิดการลิงก์ไปหน้าระบบจัดการหลังบ้าน
+            if (loginBtn) loginBtn.classList.add('d-none');
+            if (userMenu) userMenu.classList.remove('d-none');
             if (isAdmin && adminLink) {
                 adminLink.classList.remove('d-none');
             }
         } else {
-            // หากยังไม่ล็อกอิน ให้โชว์ปุ่มล็อกอินปกติ และซ่อนเมนูผู้ใช้ไว้
-            loginBtn.classList.remove('d-none');
-            userMenu.classList.add('d-none');
+            if (loginBtn) loginBtn.classList.remove('d-none');
+            if (userMenu) userMenu.classList.add('d-none');
         }
     }
 
@@ -159,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (protectedPages.includes(currentPage)) {
         if (!requireAuth()) return;
-        if (adminPages.includes(currentPage) && localStorage.getItem('isAdmin') !== 'true') {
+        if (adminPages.includes(currentPage) && user?.role !== 'admin') {
             showToast('ไม่มีสิทธิ์เข้าถึงหน้านี้', 'danger');
             window.location.href = 'index.html';
             return;
@@ -183,23 +157,22 @@ document.addEventListener('DOMContentLoaded', () => {
         loadSingleClassDetail();
     }
 
-    // 3. สั่งให้ฟังก์ชันดึงประวัติการจองทำงาน (สำหรับหน้า profile.html)
-    if (typeof loadUserBookingHistory === 'function') {
-        loadUserBookingHistory();
+    if (currentPage === 'profile.html') {
+        refreshUserDisplayFromApi().then(() => {
+            if (typeof loadUserBookingHistory === 'function') {
+                loadUserBookingHistory();
+            }
+        });
+    } else {
+        refreshUserDisplayFromApi();
     }
 
 });
 
 // ฟังก์ชันลบตัวแปรออกจากหน่วยความจำและทำการออกจากระบบ
 function handleLogout() {
-    // ลบตัวแปรสถานะและข้อมูลส่วนตัวทั้งหมดออกจาก localStorage เพื่อทำลาย session ล็อกอิน
-    localStorage.removeItem('isLoggedIn');
-    localStorage.removeItem('isAdmin');
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userName');
-    localStorage.removeItem('token');
-    // เปลี่ยนเส้นทางผู้ใช้กลับไปยังหน้าแรก
-    window.location.href = 'index.html';
+    clearAuthSession();
+    window.location.href = 'login.html';
 }
 
 // ฟังก์ชันสร้างและกระตุ้นการแสดงกล่องแจ้งเตือนข้อมูลด่วน Toast แบบสวยงาม
@@ -588,9 +561,7 @@ async function loadSingleClassDetail() {
 
 // 2. ฟังก์ชันส่งข้อมูลคำร้องขอจองคลาสเรียนไปยังระบบหลังบ้าน
 async function processClassBooking(classId) {
-    const token = getAuthToken();
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    if (!token || !isLoggedIn) {
+    if (!isAuthenticated()) {
         showToast('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ', 'warning');
         sessionStorage.setItem('pendingBookClassId', classId);
         redirectToLogin();
