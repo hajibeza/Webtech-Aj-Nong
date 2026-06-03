@@ -39,9 +39,13 @@ async function register({ email, password, name, role = 'user' }) {
  */
 async function login({ email, password }) {
 	try {
+		const identifier = (email || '').trim();
 		const user = db
-			.prepare('SELECT id, email, password_hash, name, role, profile_image FROM users WHERE email = ?')
-			.get(email);
+			.prepare(
+				`SELECT id, username, email, password_hash, name, role, profile_image
+				 FROM users WHERE email = ? OR username = ?`
+			)
+			.get(identifier, identifier);
 
 		if (!user) {
 			const err = new Error('ไม่พบผู้ใช้');
@@ -63,7 +67,14 @@ async function login({ email, password }) {
 		}
 
 		const token = jwt.sign(
-			{ id: user.id, email: user.email, name: user.name, role: user.role, profile_image: user.profile_image },
+			{
+				id: user.id,
+				username: user.username || user.email,
+				email: user.email,
+				name: user.name,
+				role: user.role,
+				profile_image: user.profile_image,
+			},
 			process.env.JWT_SECRET,
 			{ expiresIn: '24h' }
 		);
@@ -72,6 +83,7 @@ async function login({ email, password }) {
 			token,
 			user: {
 				id: user.id,
+				username: user.username || user.email,
 				email: user.email,
 				name: user.name,
 				role: user.role,

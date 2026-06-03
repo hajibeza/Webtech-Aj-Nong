@@ -25,11 +25,16 @@ function initSchema() {
 		);
 	`);
 
-	// Add profile_image column if it doesn't exist (for existing databases)
 	try {
 		db.exec(`ALTER TABLE users ADD COLUMN profile_image TEXT;`);
 	} catch (error) {
-		// Ignore error if column already exists
+		// column may already exist
+	}
+
+	const userCols = db.prepare('PRAGMA table_info(users)').all();
+	if (!userCols.some((c) => c.name === 'username')) {
+		db.exec(`ALTER TABLE users ADD COLUMN username TEXT`);
+		db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)`);
 	}
 
 	db.exec(`
@@ -71,14 +76,15 @@ function seedData() {
 	}
 
 	const insertUser = db.prepare(`
-		INSERT INTO users (email, password_hash, name, role)
-		VALUES (@email, @password_hash, @name, @role)
+		INSERT INTO users (username, email, password_hash, name, role)
+		VALUES (@username, @email, @password_hash, @name, @role)
 	`);
 
 	const studentHash = bcrypt.hashSync('password123', 10);
-	const adminHash = bcrypt.hashSync('admin123', 10);
+	const adminHash = bcrypt.hashSync('admin1234', 10);
 
 	insertUser.run({
+		username: null,
 		email: 'student@example.com',
 		password_hash: studentHash,
 		name: 'Somchai R.',
@@ -86,6 +92,7 @@ function seedData() {
 	});
 
 	insertUser.run({
+		username: 'admin',
 		email: 'admin@example.com',
 		password_hash: adminHash,
 		name: 'Admin User',
@@ -216,6 +223,31 @@ function seedData() {
 	});
 }
 
+function seedAdminUser() {
+	const adminHash = bcrypt.hashSync('admin1234', 10);
+	const byUsername = db.prepare('SELECT id FROM users WHERE username = ?').get('admin');
+	const byEmail = db.prepare('SELECT id FROM users WHERE email = ?').get('admin@example.com');
+
+	if (byUsername) {
+		db.prepare(
+			`UPDATE users SET password_hash = ?, role = 'admin', name = COALESCE(name, 'Admin') WHERE id = ?`
+		).run(adminHash, byUsername.id);
+		return;
+	}
+
+	if (byEmail) {
+		db.prepare(
+			`UPDATE users SET username = 'admin', password_hash = ?, role = 'admin' WHERE id = ?`
+		).run(adminHash, byEmail.id);
+		return;
+	}
+
+	db.prepare(
+		`INSERT INTO users (username, email, password_hash, name, role)
+		 VALUES ('admin', 'admin@example.com', ?, 'Admin', 'admin')`
+	).run(adminHash);
+}
+
 function seedMissingClasses() {
 	const insertClass = db.prepare(`
 		INSERT INTO classes (
@@ -261,6 +293,7 @@ function seedMissingClasses() {
 
 initSchema();
 seedData();
+seedAdminUser();
 seedMissingClasses();
 
 module.exports = db;

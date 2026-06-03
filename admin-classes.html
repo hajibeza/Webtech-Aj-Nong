@@ -75,49 +75,64 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
-                    <form>
+                    <form id="classForm" onsubmit="return false;">
                         <div class="row g-3">
                             <div class="col-md-8">
                                 <label class="form-label small fw-bold">ชื่อคลาสเรียน</label>
-                                <input type="text" class="form-control" placeholder="เช่น Web Development 101">
+                                <input type="text" class="form-control" id="classFormTitle" placeholder="เช่น Web Development 101" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold">หมวดหมู่</label>
-                                <select class="form-select">
-                                    <option>Programming</option>
-                                    <option>Design</option>
-                                    <option>Data Science</option>
+                                <select class="form-select" id="classFormCategory">
+                                    <option value="Programming">Programming</option>
+                                    <option value="Design">Design</option>
+                                    <option value="Data Science">Data Science</option>
+                                    <option value="Marketing">Marketing</option>
                                 </select>
                             </div>
                             
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">ชื่อผู้สอน</label>
-                                <input type="text" class="form-control" placeholder="ชื่อวิทยากร">
+                                <input type="text" class="form-control" id="classFormInstructor" placeholder="ชื่อวิทยากร" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">วันและเวลาที่เรียน</label>
-                                <input type="datetime-local" class="form-control">
+                                <input type="datetime-local" class="form-control" id="classFormDatetime">
                             </div>
 
-                            <div class="col-md-6">
-                                <label class="form-label small fw-bold">จำนวนที่นั่งสูงสุด (Max Capacity)</label>
-                                <input type="number" class="form-control" value="30">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">จำนวนที่นั่งสูงสุด</label>
+                                <input type="number" class="form-control" id="classFormCapacity" value="30" min="1">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label small fw-bold">ราคา (บาท)</label>
-                                <input type="number" class="form-control" placeholder="0 = ฟรี">
+                                <input type="number" class="form-control" id="classFormPrice" min="0" placeholder="0">
                             </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">สถานะ</label>
+                                <select class="form-select" id="classFormStatus">
+                                    <option value="open">เปิดรับสมัคร</option>
+                                    <option value="closed">ปิดรับสมัคร</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="classFormDate">
+                            <input type="hidden" id="classFormTimeStart" value="09:00">
+                            <input type="hidden" id="classFormTimeEnd" value="17:00">
 
                             <div class="col-12">
-                                <label class="form-label small fw-bold">รายละเอียดบทเรียนย่อย</label>
-                                <textarea class="form-control" rows="4" placeholder="กรอกรายละเอียด..."></textarea>
+                                <label class="form-label small fw-bold">URL รูปคลาส</label>
+                                <input type="url" class="form-control" id="classFormImageUrl" placeholder="https://...">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label small fw-bold">รายละเอียด</label>
+                                <textarea class="form-control" id="classFormDescription" rows="4" placeholder="กรอกรายละเอียด..."></textarea>
                             </div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-primary-custom" data-bs-dismiss="modal" id="admin-class-save-btn">บันทึกข้อมูล</button>
+                    <button type="button" class="btn btn-primary-custom" id="admin-class-save-btn">บันทึกข้อมูล</button>
                 </div>
             </div>
         </div>

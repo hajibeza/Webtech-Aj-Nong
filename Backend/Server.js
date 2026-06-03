@@ -9,7 +9,7 @@ const path = require('path');
 
 const db = require('./db/database');
 const userRows = db.prepare('SELECT id, email, name, role FROM users').all();
-console.log(`[auth] users in database: ${userRows.length}`, userRows);
+// console.log(`[auth] users in database: ${userRows.length}`, userRows);
 
 const authRoutes = require('./routes/auth');
 const classRoutes = require('./routes/classes');

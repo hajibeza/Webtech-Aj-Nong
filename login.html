@@ -141,7 +141,13 @@
 
                 saveAuthSession(token, user);
 
-                window.location.href = getPostLoginRedirect(expectedRole, user.role);
+                const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+                const role = payload.role || user.role;
+                if (role === 'admin') {
+                    window.location.href = '/admin-dashboard.html';
+                    return;
+                }
+                window.location.href = getPostLoginRedirect(expectedRole, role);
             } catch (error) {
                 console.error('Login error:', error);
                 showLoginAlert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'danger');
@@ -157,8 +163,8 @@
         document.getElementById('adminLoginBtn').addEventListener('click', (e) => {
             e.preventDefault();
             // กรอกค่าอีเมลและรหัสแอดมินจำลองลงใน Input โดยอัตโนมัติเพื่ออำนวยความสะดวก
-            document.getElementById('email').value = 'admin@example.com';
-            document.getElementById('password').value = 'admin123';
+            document.getElementById('email').value = 'admin';
+            document.getElementById('password').value = 'admin1234';
             doLogin('admin'); // ดำเนินการล็อกอินสิทธิ์แอดมินระบบ
         });
     </script>

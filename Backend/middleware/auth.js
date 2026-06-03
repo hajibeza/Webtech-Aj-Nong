@@ -49,4 +49,7 @@ function requireAdmin(req, res, next) {
 	}
 }
 
-module.exports = { verifyJWT, requireAdmin };
+/** Alias per project spec */
+const verifyAdmin = requireAdmin;
+
+module.exports = { verifyJWT, requireAdmin, verifyAdmin };
