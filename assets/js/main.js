@@ -339,6 +339,9 @@ function renderClasses(classList) {
             ? `<button class="btn btn-secondary" disabled>ที่นั่งเต็ม</button>`
             : `<a href="class-detail.html?id=${item.id}" class="btn btn-primary-custom">ดูรายละเอียด</a>`;
 
+        const progressPercent = (item.seatsTaken / item.capacity) * 100;
+        const progressColor = isFull ? 'bg-danger' : (progressPercent >= 90 ? 'bg-danger' : 'bg-warning');
+
         // ประกอบโครงสร้างการ์ด HTML ด้วย template literal
         const cardHtml = `
             <div class="col-md-6 col-lg-4">
@@ -350,9 +353,18 @@ function renderClasses(classList) {
                             <span class="badge ${badgeColor} rounded-pill">${isFull ? '' : '<i class="bi bi-fire"></i> '} ${badgeText}</span>
                         </div>
                         <h5 class="card-title fw-bold">${item.title}</h5>
-                        <p class="text-muted small mb-3"><i class="bi bi-person-video3 me-1"></i> ผู้สอน: ${item.instructor}</p>
+                        <p class="text-muted small mb-2"><i class="bi bi-person-video3 me-1"></i> ผู้สอน: ${item.instructor}</p>
                         <div class="d-flex align-items-center mb-3 text-sm">
                             <i class="bi bi-calendar-event text-primary me-2"></i> ${item.date} | ${item.timeStart} - ${item.timeEnd} น.
+                        </div>
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-1 text-sm text-muted">
+                                <span>ที่นั่งที่จองแล้ว</span>
+                                <span class="fw-bold">${item.seatsTaken}/${item.capacity}</span>
+                            </div>
+                            <div class="progress" style="height: 8px; background-color: rgba(255,255,255,0.1);">
+                                <div class="progress-bar ${progressColor} progress-bar-striped progress-bar-animated" role="progressbar" style="width: ${progressPercent}%"></div>
+                            </div>
                         </div>
                         <div class="mt-auto d-flex justify-content-between align-items-center pt-3 border-top">
                             <span class="fs-5 fw-bold text-success">฿${item.price.toLocaleString()}</span>
