@@ -3,11 +3,11 @@ require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 const express = require('express');
 const path = require('path');
 
-require('../src/db/database');
+require('./db/database');
 
-const authRoutes = require('../src/routes/auth');
-const classRoutes = require('../src/routes/classes');
-const bookingRoutes = require('../src/routes/bookings');
+const authRoutes = require('./routes/auth');
+const classRoutes = require('./routes/classes');
+const bookingRoutes = require('./routes/bookings');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
