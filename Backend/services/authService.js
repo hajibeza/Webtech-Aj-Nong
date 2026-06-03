@@ -24,7 +24,7 @@ async function register({ email, password, name, role = 'user' }) {
 			.run(email, passwordHash, name, role);
 
 		const user = db
-			.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?')
+			.prepare('SELECT id, email, name, role, profile_image, created_at FROM users WHERE id = ?')
 			.get(result.lastInsertRowid);
 
 		return user;
@@ -40,7 +40,7 @@ async function register({ email, password, name, role = 'user' }) {
 async function login({ email, password }) {
 	try {
 		const user = db
-			.prepare('SELECT id, email, password_hash, name, role FROM users WHERE email = ?')
+			.prepare('SELECT id, email, password_hash, name, role, profile_image FROM users WHERE email = ?')
 			.get(email);
 
 		if (!user) {
@@ -63,7 +63,7 @@ async function login({ email, password }) {
 		}
 
 		const token = jwt.sign(
-			{ id: user.id, email: user.email, name: user.name, role: user.role },
+			{ id: user.id, email: user.email, name: user.name, role: user.role, profile_image: user.profile_image },
 			process.env.JWT_SECRET,
 			{ expiresIn: '24h' }
 		);
@@ -75,6 +75,7 @@ async function login({ email, password }) {
 				email: user.email,
 				name: user.name,
 				role: user.role,
+				profile_image: user.profile_image,
 			},
 		};
 	} catch (error) {
@@ -89,7 +90,7 @@ async function login({ email, password }) {
 function getUserById(userId) {
 	try {
 		const user = db
-			.prepare('SELECT id, email, name, role, created_at FROM users WHERE id = ?')
+			.prepare('SELECT id, email, name, role, profile_image, created_at FROM users WHERE id = ?')
 			.get(userId);
 		if (!user) {
 			const err = new Error('User not found');
@@ -102,4 +103,18 @@ function getUserById(userId) {
 	}
 }
 
-module.exports = { register, login, getUserById };
+/**
+ * Update user's profile image
+ * @param {number} userId
+ * @param {string} imageUrl
+ */
+function updateProfileImage(userId, imageUrl) {
+	try {
+		db.prepare('UPDATE users SET profile_image = ? WHERE id = ?').run(imageUrl, userId);
+		return getUserById(userId);
+	} catch (error) {
+		throw error;
+	}
+}
+
+module.exports = { register, login, getUserById, updateProfileImage };

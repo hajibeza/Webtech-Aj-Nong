@@ -74,19 +74,29 @@ function getAuthHeaders() {
 	return headers;
 }
 
-function applyUserDisplay(name, email) {
+function applyUserDisplay(name, email, profileImage) {
 	document.querySelectorAll('[data-user-name]').forEach((el) => {
 		el.textContent = name || 'ผู้ใช้';
 	});
 	document.querySelectorAll('[data-user-email]').forEach((el) => {
 		el.textContent = email || '';
 	});
+
+	// Update profile images if profileImage is provided
+	if (profileImage) {
+		const imageUrl = getApiBaseUrl() + profileImage;
+		const navProfileImg = document.querySelector('.dropdown-toggle img.rounded-circle');
+		if (navProfileImg) navProfileImg.src = imageUrl;
+
+		const profilePageImg = document.getElementById('profile-image-display');
+		if (profilePageImg) profilePageImg.src = imageUrl;
+	}
 }
 
 /** Quick update from JWT only (name field never falls back to email). */
 function updateUserDisplay() {
 	const user = getCurrentUser();
-	applyUserDisplay(user?.name, user?.email);
+	applyUserDisplay(user?.name, user?.email, user?.profile_image);
 }
 
 /** Fetch name + email from database via GET /api/auth/me (source of truth). */
@@ -99,7 +109,10 @@ async function refreshUserDisplayFromApi() {
 		});
 		const result = await response.json();
 		if (response.ok && result.success && result.data) {
-			applyUserDisplay(result.data.name, result.data.email);
+			applyUserDisplay(result.data.name, result.data.email, result.data.profile_image);
+			
+			// Update local storage user data to keep it in sync
+			saveAuthSession(getAuthToken(), result.data);
 			return;
 		}
 	} catch (error) {
@@ -107,4 +120,45 @@ async function refreshUserDisplayFromApi() {
 	}
 
 	updateUserDisplay();
+}
+
+/** Upload new profile image */
+async function uploadProfileImage(event) {
+	const file = event.target.files[0];
+	if (!file) return;
+
+	const formData = new FormData();
+	formData.append('profileImage', file);
+
+	try {
+		const response = await fetch(`${getApiBaseUrl()}/api/auth/profile-image`, {
+			method: 'POST',
+			headers: {
+				'Authorization': `Bearer ${getAuthToken()}`
+				// Don't set Content-Type here; let the browser set it automatically for FormData
+			},
+			body: formData
+		});
+
+		const result = await response.json();
+		
+		if (response.ok && result.success) {
+			if (typeof showToast === 'function') {
+				showToast('อัปเดตรูปโปรไฟล์สำเร็จ', 'success');
+			} else {
+				alert('อัปเดตรูปโปรไฟล์สำเร็จ');
+			}
+			// Refresh user display to show new image
+			refreshUserDisplayFromApi();
+		} else {
+			if (typeof showToast === 'function') {
+				showToast(result.message || 'การอัปโหลดล้มเหลว', 'danger');
+			} else {
+				alert(result.message || 'การอัปโหลดล้มเหลว');
+			}
+		}
+	} catch (error) {
+		console.error('Upload error:', error);
+		alert('เกิดข้อผิดพลาดในการอัปโหลดรูปภาพ');
+	}
 }

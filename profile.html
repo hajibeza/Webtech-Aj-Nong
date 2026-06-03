@@ -55,7 +55,13 @@
             <!-- Sidebar Profile -->
             <div class="col-lg-4">
                 <div class="glass-card p-4 text-center">
-                    <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80" alt="User" class="rounded-circle mb-3 shadow" width="120" height="120" style="object-fit: cover;">
+                    <div class="position-relative d-inline-block mb-3">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80" alt="User" class="rounded-circle shadow" width="120" height="120" style="object-fit: cover;" id="profile-image-display">
+                        <button class="btn btn-sm btn-primary rounded-circle position-absolute bottom-0 end-0 shadow" style="width: 32px; height: 32px; padding: 0;" onclick="document.getElementById('profileImageInput').click();" title="เปลี่ยนรูปโปรไฟล์">
+                            <i class="bi bi-pencil-fill" style="font-size: 0.8rem;"></i>
+                        </button>
+                    </div>
+                    <input type="file" id="profileImageInput" class="d-none" accept="image/*" onchange="uploadProfileImage(event)">
                     <h4 class="fw-bold mb-1" data-user-name>ผู้ใช้</h4>
                     <p class="text-muted small mb-3" data-user-email></p>
                     <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill"><i class="bi bi-shield-check"></i> ยืนยันตัวตนแล้ว</span>

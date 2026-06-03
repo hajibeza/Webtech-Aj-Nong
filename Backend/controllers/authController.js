@@ -54,6 +54,35 @@ async function login(req, res) {
 	}
 }
 
+async function uploadProfileImage(req, res) {
+	try {
+		const user = req.user;
+		if (!user) {
+			return res.status(401).json({ success: false, message: 'Unauthorized' });
+		}
+
+		if (!req.file) {
+			return res.status(400).json({ success: false, message: 'No file uploaded' });
+		}
+
+		// Create a public URL path (assuming /uploads is served statically)
+		const imageUrl = '/uploads/profiles/' + req.file.filename;
+
+		const updatedUser = authService.updateProfileImage(user.id, imageUrl);
+
+		return res.json({
+			success: true,
+			data: updatedUser,
+			message: 'Profile image updated successfully',
+		});
+	} catch (error) {
+		return res.status(500).json({
+			success: false,
+			message: error.message || 'Failed to update profile image',
+		});
+	}
+}
+
 async function getMe(req, res) {
 	try {
 		const user = authService.getUserById(req.user.id);
@@ -72,4 +101,4 @@ async function getMe(req, res) {
 	}
 }
 
-module.exports = { register, login, getMe };
+module.exports = { register, login, getMe, uploadProfileImage };
