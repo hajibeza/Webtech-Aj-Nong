@@ -97,7 +97,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const user = getCurrentUser();
     const isAdmin = user?.role === 'admin';
 
-    // ดึงอ้างอิง Element เมนูผู้ใช้และปุ่มเข้าสู่ระบบใน Navbar
     const userMenu = document.getElementById('user-menu');
     const loginBtn = document.getElementById('login-btn');
     const adminLink = document.getElementById('admin-link');
@@ -120,24 +119,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ★ Auth Guard: protected pages redirect to login with returnUrl
     const currentPage = window.location.pathname.split('/').pop();
-    const protectedPages = [
-        'profile.html',
-        'payment.html',
-        'admin-dashboard.html',
-        'admin-classes.html',
-        'admin-bookings.html',
-    ];
-    const adminPages = ['admin-dashboard.html', 'admin-classes.html', 'admin-bookings.html'];
+    const protectedPages = ['profile.html', 'payment.html'];
 
     if (protectedPages.includes(currentPage)) {
         if (!requireAuth()) return;
-        if (adminPages.includes(currentPage) && user?.role !== 'admin') {
-            showToast('ไม่มีสิทธิ์เข้าถึงหน้านี้', 'danger');
-            window.location.href = 'index.html';
-            return;
-        }
     }
 
     // ★ Resume booking after login (Book → login → back → auto-book → payment)
