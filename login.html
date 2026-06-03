@@ -53,6 +53,31 @@
         // API Base URL สำหรับใช้เรียกเข้า API ยืนยันสิทธิ์หลังบ้าน
         const API_BASE_URL = 'http://localhost:3000';
 
+        const DEFAULT_USER_URL = '/index.html';
+        const DEFAULT_ADMIN_URL = '/admin-dashboard.html';
+
+        function getSafeReturnUrl(raw, fallback) {
+            if (!raw) return fallback;
+            const trimmed = raw.trim();
+            const lower = trimmed.toLowerCase();
+            if (lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('//')) {
+                return fallback;
+            }
+            if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+                return trimmed;
+            }
+            return fallback;
+        }
+
+        function getPostLoginRedirect(expectedRole, userRole) {
+            const params = new URLSearchParams(window.location.search);
+            const fallback = userRole === 'admin' ? DEFAULT_ADMIN_URL : DEFAULT_USER_URL;
+            if (expectedRole === 'admin') {
+                return DEFAULT_ADMIN_URL;
+            }
+            return getSafeReturnUrl(params.get('returnUrl'), fallback);
+        }
+
         // ฟังก์ชันช่วยแสดงกล่องข้อความแจ้งเตือนสีแดง/สีส้มบนหน้าจอเมื่อล็อกอินไม่สำเร็จ
         function showLoginAlert(message, type) {
             const alertEl = document.getElementById('loginAlert');
@@ -96,17 +121,15 @@
                 localStorage.setItem('token', token); // เก็บ Token สำหรับส่งแนบไปใน API Headers
                 localStorage.setItem('isLoggedIn', 'true'); // เซ็ตค่าสถานะเข้าสู่ระบบสำเร็จ
                 localStorage.setItem('userId', String(user.id)); // เซ็ตบันทึกรหัสประจำตัวผู้ใช้
-                localStorage.setItem('userName', user.name); // เซ็ตชื่อเล่นผู้ใช้งานไปโชว์
+                localStorage.setItem('userName', user.name);
 
                 if (user.role === 'admin') {
-                    // หากผู้ใช้มีระดับสิทธิ์เป็น admin ให้เซ็ตสถานะแอดมินและส่งผู้ใช้ไปหน้า Dashboard
                     localStorage.setItem('isAdmin', 'true');
-                    window.location.href = 'admin-dashboard.html';
                 } else {
-                    // หากเป็นผู้ใช้/นักเรียนทั่วไป ให้ลบเศษแอดมินออกและนำทางกลับไปยังหน้าหลัก
                     localStorage.removeItem('isAdmin');
-                    window.location.href = 'index.html';
                 }
+
+                window.location.href = getPostLoginRedirect(expectedRole, user.role);
             } catch (error) {
                 console.error('Login error:', error);
                 showLoginAlert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'danger');
