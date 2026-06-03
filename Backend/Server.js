@@ -37,7 +37,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/admin', adminRoutes);
 
 app.use(express.static(path.join(__dirname, '..')));
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+// app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 app.use((req, res) => {
 	res.status(404).json({
