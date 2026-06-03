@@ -28,7 +28,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/bookings', bookingRoutes);
 
-app.use(express.static(path.join(__dirname, '..')));
+// app.use(express.static(path.join(__dirname, '..')));
 
 app.use((req, res) => {
 	res.status(404).json({
@@ -47,6 +47,17 @@ app.use((err, req, res, _next) => {
 	});
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
 	console.log(`Server running on http://localhost:${PORT}`);
+});
+
+server.on('error', (err) => {
+	if (err.code === 'EADDRINUSE') {
+		console.error(
+			`Port ${PORT} is already in use. Stop the other server or change PORT in .env`
+		);
+	} else {
+		console.error('Failed to start server:', err.message);
+	}
+	process.exit(1);
 });
