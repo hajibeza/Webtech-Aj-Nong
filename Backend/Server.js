@@ -8,6 +8,7 @@ require('./db/database');
 const authRoutes = require('./routes/auth');
 const classRoutes = require('./routes/classes');
 const bookingRoutes = require('./routes/bookings');
+const adminRoutes = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -27,8 +28,9 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/classes', classRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/admin', adminRoutes);
 
-// app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(path.join(__dirname, '..')));
 
 app.use((req, res) => {
 	res.status(404).json({

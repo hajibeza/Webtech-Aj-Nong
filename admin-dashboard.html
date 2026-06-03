@@ -53,7 +53,7 @@
     <div class="admin-content fade-in">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h2 class="fw-bold mb-0">ภาพรวมระบบ (Dashboard)</h2>
-            <button class="btn btn-outline-primary btn-sm"><i class="bi bi-arrow-clockwise"></i> รีเฟรชข้อมูล</button>
+            <button type="button" class="btn btn-outline-primary btn-sm" id="admin-refresh-btn"><i class="bi bi-arrow-clockwise"></i> รีเฟรชข้อมูล</button>
         </div>
 
         <!-- KPI Cards -->
@@ -65,7 +65,7 @@
                             <h6 class="text-muted fw-bold mb-0">จำนวนคลาสเรียนทั้งหมด</h6>
                             <div class="p-2 bg-primary-subtle text-primary rounded-3"><i class="bi bi-journal-check fs-5"></i></div>
                         </div>
-                        <h2 class="fw-bold mb-0">12 <span class="fs-6 text-muted fw-normal">คลาส</span></h2>
+                        <h2 class="fw-bold mb-0"><span id="admin-kpi-classes">0</span> <span class="fs-6 text-muted fw-normal">คลาส</span></h2>
                     </div>
                 </div>
             </div>
@@ -77,7 +77,7 @@
                             <h6 class="text-muted fw-bold mb-0">ยอดรายได้รวม</h6>
                             <div class="p-2 bg-success-subtle text-success rounded-3"><i class="bi bi-cash-stack fs-5"></i></div>
                         </div>
-                        <h2 class="fw-bold text-success mb-0">฿145,500</h2>
+                        <h2 class="fw-bold text-success mb-0" id="admin-kpi-revenue">฿0</h2>
                     </div>
                 </div>
             </div>
@@ -89,9 +89,9 @@
                             <h6 class="text-muted fw-bold mb-0">ที่นั่งที่ถูกจองไปแล้ว</h6>
                             <div class="p-2 bg-warning-subtle text-warning rounded-3"><i class="bi bi-person-check-fill fs-5"></i></div>
                         </div>
-                        <h2 class="fw-bold mb-0">120 <span class="fs-5 text-muted fw-normal">/ 150 ที่นั่ง</span></h2>
+                        <h2 class="fw-bold mb-0" id="admin-kpi-seats">0 <span class="fs-5 text-muted fw-normal">/ 0 ที่นั่ง</span></h2>
                         <div class="progress mt-2" style="height: 6px;">
-                            <div class="progress-bar bg-warning" role="progressbar" style="width: 80%"></div>
+                            <div class="progress-bar bg-warning" id="admin-kpi-progress" role="progressbar" style="width: 0%"></div>
                         </div>
                     </div>
                 </div>
