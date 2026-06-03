@@ -91,78 +91,6 @@ function getCurrentUserId() {
 }
 
 // ==========================================
-// ★ [Phase 2 — ข้อ 3] Booking State Management
-// ระบบจัดการสถานะการจองส่วนกลาง (Single Source of Truth)
-// ข้อมูลการจองทั้งหมดจะถูกเก็บไว้ใน Array นี้ตัวเดียว
-// และจะถูกบันทึก/กู้คืนผ่าน localStorage อัตโนมัติ
-// ==========================================
-
-// ★ ตัวแปรกลางเก็บข้อมูลการจองทั้งหมด (Single Source of Truth)
-let bookingState = [];
-
-// ★ บันทึกสถานะการจองลง localStorage (Persistence)
-// เรียกทุกครั้งที่มีการเปลี่ยนแปลงข้อมูลใน bookingState
-function persistBookingState() {
-    // แปลงอาเรย์ bookingState เป็น JSON String (Serialization) แล้วเซฟลง localStorage เพื่อรักษาข้อมูลไว้
-    localStorage.setItem('bookingState', JSON.stringify(bookingState));
-}
-
-// ★ กู้คืนสถานะการจองจาก localStorage กลับเข้า bookingState (Hydration)
-// เรียกตอนเปิดหน้าเว็บครั้งแรก (DOMContentLoaded) เพื่อให้ข้อมูลไม่หายแม้รีเฟรช
-function hydrateBookingState() {
-    try {
-        // ดึงค่า String ของการจองที่เซฟไว้ใน localStorage ออกมา
-        const saved = localStorage.getItem('bookingState');
-        if (saved) {
-            // แปลง JSON String กลับมาเป็นอาเรย์ในโปรแกรม (Deserialization)
-            bookingState = JSON.parse(saved);
-        }
-    } catch (error) {
-        // หากเกิดข้อผิดพลาดในการโหลด ให้ทำการล้างค่าเป็นอาเรย์ว่างเปล่า
-        console.error('ไม่สามารถกู้คืนข้อมูลการจองได้:', error);
-        bookingState = [];
-    }
-}
-
-// ★ เพิ่มใบจองใหม่เข้า State กลาง แล้วบันทึกลง localStorage
-function addBookingToState(booking) {
-    // ป้องกันข้อมูลซ้ำ: เช็คว่ามี booking id นี้อยู่แล้วหรือยังในอาเรย์
-    const exists = bookingState.find(b => b.id === booking.id);
-    if (!exists) {
-        // ถ้าไม่มีใบจองไอดีนี้ ให้ผลักข้อมูลใบจองใหม่เข้าไปในอาเรย์ bookingState
-        bookingState.push(booking);
-        // บันทึกอัปเดตลง localStorage ทันที
-        persistBookingState();
-    }
-}
-
-// ★ อัปเดตสถานะของใบจองที่มีอยู่แล้ว (เช่น เปลี่ยนจาก pending → canceled)
-function updateBookingInState(bookingId, updates) {
-    // ค้นหาตำแหน่งอินเด็กซ์ของใบจองที่ต้องการอัปเดตในอาเรย์
-    const index = bookingState.findIndex(b => b.id === bookingId);
-    if (index !== -1) {
-        // ถ้าเจอ ให้ทำการ Merge ข้อมูลใหม่ทับของเดิมโดยใช้ Spread Operator
-        bookingState[index] = { ...bookingState[index], ...updates };
-        // บันทึกอัปเดตลง localStorage ทันที
-        persistBookingState();
-    }
-}
-
-// ★ ลบใบจองออกจาก State กลาง (ใช้กรณีพิเศษ)
-function removeBookingFromState(bookingId) {
-    // กรองข้อมูลโดยตัดใบจองที่มีรหัสที่เลือกออกไป
-    bookingState = bookingState.filter(b => b.id !== bookingId);
-    // บันทึกอัปเดตลง localStorage ทันที
-    persistBookingState();
-}
-
-// ★ ดึงข้อมูลการจองทั้งหมดจาก State กลาง
-function getBookingState() {
-    // ส่งอาเรย์สถานะการจองทั้งหมดออกไปใช้งาน
-    return bookingState;
-}
-
-// ==========================================
 // ★ [Phase 2 — ข้อ 9] Auth Guard
 // ตรวจสอบสิทธิ์ก่อนเข้าหน้าลับ (เช่น profile, payment)
 // ถ้ายังไม่ได้ล็อกอิน จะดีดกลับไปหน้า login ทันที
@@ -181,9 +109,6 @@ function requireAuth() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ★ [Phase 2 — ข้อ 3] กู้คืนสถานะการจองจาก localStorage ก่อนทำอย่างอื่น (Hydration)
-    hydrateBookingState();
-
     // เริ่มต้นใช้งาน Bootstrap Toasts ทั้งหมดในหน้าจอ
     var toastElList = [].slice.call(document.querySelectorAll('.toast'))
     var toastList = toastElList.map(function (toastEl) {
@@ -273,9 +198,6 @@ function handleLogout() {
     localStorage.removeItem('userId');
     localStorage.removeItem('userName');
     localStorage.removeItem('token');
-    // ★ [Phase 2 — ข้อ 3] ล้างสถานะการจองออกจาก localStorage ตอนออกจากระบบด้วย
-    localStorage.removeItem('bookingState');
-    bookingState = [];
     // เปลี่ยนเส้นทางผู้ใช้กลับไปยังหน้าแรก
     window.location.href = 'index.html';
 }
@@ -687,9 +609,6 @@ async function processClassBooking(classId) {
         const result = await response.json();
 
         if (response.status === 201 && result.success) {
-            // ★ [Phase 2 — ข้อ 3] เพิ่มใบจองใหม่เข้า State กลาง + บันทึกลง localStorage (State Continuity)
-            addBookingToState(result.data);
-            // เปลี่ยนเส้นทางผู้ใช้ไปยังหน้า payment พร้อมแนบรหัสใบจองไปด้วย
             window.location.href = `payment.html?bookingId=${result.data.id}`;
         }
         else if (response.status === 409) {
@@ -854,9 +773,6 @@ async function cancelBooking(bookingId) {
         if (!response.ok || !result.success) {
             throw new Error(result.message || `API ตอบกลับสถานะ ${response.status}`);
         }
-
-        // ★ [Phase 2 — ข้อ 3] อัปเดตสถานะใบจองใน State กลางของหน้าบ้านเป็น 'canceled'
-        updateBookingInState(bookingId, { status: 'canceled' });
 
         showToast('ยกเลิกการจองคลาสเรียนสำเร็จแล้วครับ', 'success');
         

@@ -143,4 +143,62 @@ function updateBookingStatus(bookingId, userId, status) {
 	}
 }
 
-module.exports = { createBooking, getByUser, cancelBooking, updateBookingStatus };
+/**
+ * Get all bookings (admin).
+ */
+function getAll() {
+	try {
+		const rows = db
+			.prepare('SELECT * FROM bookings ORDER BY created_at DESC')
+			.all();
+		return rows.map(mapBookingRow);
+	} catch (error) {
+		throw error;
+	}
+}
+
+/**
+ * Admin force-cancel a pending booking and release the seat.
+ * @param {string} bookingId
+ */
+function adminForceCancel(bookingId) {
+	try {
+		const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId);
+		if (!booking) {
+			const err = new Error('Booking not found');
+			err.statusCode = 404;
+			throw err;
+		}
+
+		if (booking.status === 'canceled') {
+			return mapBookingRow(booking);
+		}
+
+		const updateTx = db.transaction(() => {
+			if (booking.status !== 'canceled') {
+				db.prepare(
+					`UPDATE classes SET seats_taken = CASE WHEN seats_taken > 0 THEN seats_taken - 1 ELSE 0 END
+					 WHERE id = ?`
+				).run(booking.class_id);
+			}
+			db.prepare('UPDATE bookings SET status = ? WHERE id = ?').run('canceled', bookingId);
+		});
+
+		updateTx();
+
+		return mapBookingRow(
+			db.prepare('SELECT * FROM bookings WHERE id = ?').get(bookingId)
+		);
+	} catch (error) {
+		throw error;
+	}
+}
+
+module.exports = {
+	createBooking,
+	getByUser,
+	getAll,
+	cancelBooking,
+	updateBookingStatus,
+	adminForceCancel,
+};

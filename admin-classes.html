@@ -57,65 +57,8 @@
                                 <th class="px-4 py-3 text-end">จัดการ</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <!-- Row 1 -->
-                            <tr>
-                                <td class="px-4 py-3">
-                                    <div class="d-flex align-items-center">
-                                        <img src="https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=40&q=80" class="rounded me-3" width="40" height="40" style="object-fit: cover;">
-                                        <div class="fw-bold">สร้าง Web App ด้วย React & Node.js</div>
-                                    </div>
-                                </td>
-                                <td>อ. สมเกียรติ</td>
-                                <td><span class="small text-muted">15 มิ.ย. 26 (09:00)</span></td>
-                                <td>
-                                    <div class="seat-adjuster">
-                                        <button class="btn btn-outline-danger btn-minus"><i class="bi bi-dash"></i></button>
-                                        <span class="seat-count fw-bold px-2">30</span>
-                                        <button class="btn btn-outline-success btn-plus"><i class="bi bi-plus"></i></button>
-                                    </div>
-                                </td>
-                                <td>฿2,500</td>
-                                <td>
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" checked role="switch">
-                                        <label class="form-check-label small">เปิดรับสมัคร</label>
-                                    </div>
-                                </td>
-                                <td class="px-4 text-end">
-                                    <button class="btn btn-sm btn-light text-primary me-1" data-bs-toggle="modal" data-bs-target="#classModal"><i class="bi bi-pencil-square"></i></button>
-                                    <button class="btn btn-sm btn-light text-danger"><i class="bi bi-trash"></i></button>
-                                </td>
-                            </tr>
-                            <!-- Row 2 -->
-                            <tr>
-                                <td class="px-4 py-3">
-                                    <div class="d-flex align-items-center">
-                                        <img src="https://images.unsplash.com/photo-1561070791-2526d30994b5?auto=format&fit=crop&w=40&q=80" class="rounded me-3" width="40" height="40" style="object-fit: cover;">
-                                        <div class="fw-bold">UX/UI Design Masterclass</div>
-                                    </div>
-                                </td>
-                                <td>ครูแพรว</td>
-                                <td><span class="small text-muted">22 มิ.ย. 26 (10:00)</span></td>
-                                <td>
-                                    <div class="seat-adjuster">
-                                        <button class="btn btn-outline-danger btn-minus"><i class="bi bi-dash"></i></button>
-                                        <span class="seat-count fw-bold px-2">40</span>
-                                        <button class="btn btn-outline-success btn-plus"><i class="bi bi-plus"></i></button>
-                                    </div>
-                                </td>
-                                <td>฿3,200</td>
-                                <td>
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" role="switch">
-                                        <label class="form-check-label small text-danger">ปิดรับสมัคร</label>
-                                    </div>
-                                </td>
-                                <td class="px-4 text-end">
-                                    <button class="btn btn-sm btn-light text-primary me-1"><i class="bi bi-pencil-square"></i></button>
-                                    <button class="btn btn-sm btn-light text-danger"><i class="bi bi-trash"></i></button>
-                                </td>
-                            </tr>
+                        <tbody id="admin-classes-tbody">
+                            <tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -174,7 +117,7 @@
                 </div>
                 <div class="modal-footer border-top-0 pt-0 pb-4 px-4">
                     <button type="button" class="btn btn-light" data-bs-dismiss="modal">ยกเลิก</button>
-                    <button type="button" class="btn btn-primary-custom" data-bs-dismiss="modal" onclick="showToast('บันทึกข้อมูลคลาสเรียนเรียบร้อยแล้ว')">บันทึกข้อมูล</button>
+                    <button type="button" class="btn btn-primary-custom" data-bs-dismiss="modal" id="admin-class-save-btn">บันทึกข้อมูล</button>
                 </div>
             </div>
         </div>

@@ -4,7 +4,10 @@ const Database = require('better-sqlite3');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 
-const dbPath = path.resolve(process.cwd(), process.env.DB_PATH || './store.db');
+const dbPath = process.env.DB_PATH
+	? path.resolve(process.cwd(), process.env.DB_PATH)
+	: path.join(__dirname, 'database.db');
+
 const db = new Database(dbPath);
 
 db.pragma('foreign_keys = ON');
@@ -143,6 +146,27 @@ function seedData() {
 			description: 'Design systems and UI prototypes using Figma.',
 			topics: JSON.stringify(['Design systems', 'Wireframes', 'Prototyping']),
 		},
+		{
+			id: 'cls-4',
+			title: 'Digital Marketing & SEO Bootcamp',
+			category: 'Marketing',
+			instructor: 'Somkiat',
+			date: '2026-06-25',
+			time_start: '09:30',
+			time_end: '12:30',
+			price: 2200,
+			capacity: 35,
+			seats_taken: 8,
+			status: 'open',
+			image_url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80',
+			description: 'Learn SEO, content marketing, and analytics to grow your brand online.',
+			topics: JSON.stringify([
+				'SEO fundamentals',
+				'Social media strategy',
+				'Google Analytics basics',
+				'Content planning',
+			]),
+		},
 	];
 
 	for (const cls of classes) {
@@ -182,7 +206,51 @@ function seedData() {
 	});
 }
 
+function seedMissingClasses() {
+	const insertClass = db.prepare(`
+		INSERT INTO classes (
+			id, title, category, instructor, date, time_start, time_end,
+			price, capacity, seats_taken, status, image_url, description, topics
+		) VALUES (
+			@id, @title, @category, @instructor, @date, @time_start, @time_end,
+			@price, @capacity, @seats_taken, @status, @image_url, @description, @topics
+		)
+	`);
+
+	const extraClasses = [
+		{
+			id: 'cls-4',
+			title: 'Digital Marketing & SEO Bootcamp',
+			category: 'Marketing',
+			instructor: 'Somkiat',
+			date: '2026-06-25',
+			time_start: '09:30',
+			time_end: '12:30',
+			price: 2200,
+			capacity: 35,
+			seats_taken: 8,
+			status: 'open',
+			image_url: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=600&q=80',
+			description: 'Learn SEO, content marketing, and analytics to grow your brand online.',
+			topics: JSON.stringify([
+				'SEO fundamentals',
+				'Social media strategy',
+				'Google Analytics basics',
+				'Content planning',
+			]),
+		},
+	];
+
+	const exists = db.prepare('SELECT id FROM classes WHERE id = ?');
+	for (const cls of extraClasses) {
+		if (!exists.get(cls.id)) {
+			insertClass.run(cls);
+		}
+	}
+}
+
 initSchema();
 seedData();
+seedMissingClasses();
 
 module.exports = db;

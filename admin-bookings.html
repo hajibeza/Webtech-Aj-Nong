@@ -64,60 +64,8 @@
                                 <th class="px-4 py-3 text-end">จัดการตั๋วหลุด (Force Release)</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <!-- Success Booking -->
-                            <tr>
-                                <td class="px-4 text-muted">#BK-001</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=30&q=80" class="rounded-circle me-2" width="30" height="30">
-                                        สมชาย รักเรียน
-                                    </div>
-                                </td>
-                                <td>สร้าง Web App ด้วย React...</td>
-                                <td><span class="small text-muted">27 พ.ค. 2026, 10:15</span></td>
-                                <td>2,500</td>
-                                <td><span class="badge bg-success">สำเร็จแล้ว</span></td>
-                                <td class="px-4 text-end">
-                                    <span class="text-muted small">-</span>
-                                </td>
-                            </tr>
-                            
-                            <!-- Pending Booking (Needs Force Release) -->
-                            <tr>
-                                <td class="px-4 text-muted">#BK-002</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <img src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=30&q=80" class="rounded-circle me-2" width="30" height="30">
-                                        สมหญิง ยิงธนู
-                                    </div>
-                                </td>
-                                <td>UX/UI Design Masterclass</td>
-                                <td><span class="small text-muted">27 พ.ค. 2026, 11:30</span></td>
-                                <td>3,200</td>
-                                <td><span class="badge bg-warning text-dark">รอชำระเงิน</span></td>
-                                <td class="px-4 text-end">
-                                    <button class="btn btn-sm btn-danger btn-force-release">ยึดที่นั่งคืน</button>
-                                </td>
-                            </tr>
-
-                            <!-- Cancelled Booking -->
-                            <tr>
-                                <td class="px-4 text-muted">#BK-003</td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <img src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=30&q=80" class="rounded-circle me-2" width="30" height="30">
-                                        วิทยา บ้าพลัง
-                                    </div>
-                                </td>
-                                <td>Python for Data Analysis...</td>
-                                <td><span class="small text-muted">26 พ.ค. 2026, 09:00</span></td>
-                                <td>1,800</td>
-                                <td><span class="badge bg-danger">ยกเลิกแล้ว</span></td>
-                                <td class="px-4 text-end">
-                                    <span class="text-muted small">-</span>
-                                </td>
-                            </tr>
+                        <tbody id="admin-bookings-tbody">
+                            <tr><td colspan="7" class="text-center py-4 text-muted">กำลังโหลด...</td></tr>
                         </tbody>
                     </table>
                 </div>
