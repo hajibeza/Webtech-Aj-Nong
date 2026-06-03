@@ -258,8 +258,11 @@
             }
         }
 
-        // ★ สั่งให้ฟังก์ชันยิง API ดึงรายละเอียดและยอดเงินทำงานทันทีเมื่อหน้าเพจโหลดเสร็จ
-        loadPaymentDetails();
+        document.addEventListener('DOMContentLoaded', () => {
+            if (getAuthToken() && localStorage.getItem('isLoggedIn') === 'true') {
+                loadPaymentDetails();
+            }
+        });
 
         // ===========================================
         // ★ ส่วน Gate Layer: ยืนยันการชำระเงิน

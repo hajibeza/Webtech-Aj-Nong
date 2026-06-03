@@ -26,6 +26,44 @@ function getAuthHeaders() {
     return headers;
 }
 
+// ★ Build current page path for post-login redirect (relative, same-origin)
+function getCurrentReturnUrl() {
+    let path = window.location.pathname || '/index.html';
+    if (!path.startsWith('/')) {
+        const filename = path.split('/').pop() || 'index.html';
+        path = `/${filename}`;
+    }
+    return path + (window.location.search || '') + (window.location.hash || '');
+}
+
+// ★ Validate returnUrl — block open-redirect (http://, https://, //)
+function getSafeReturnUrl(raw, fallback = '/index.html') {
+    if (!raw) return fallback;
+    const trimmed = raw.trim();
+    const lower = trimmed.toLowerCase();
+    if (lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('//')) {
+        return fallback;
+    }
+    if (trimmed.startsWith('/') && !trimmed.startsWith('//')) {
+        return trimmed;
+    }
+    return fallback;
+}
+
+// ★ Redirect unauthenticated users to login with returnUrl
+function redirectToLogin(explicitReturnUrl) {
+    const returnUrl = getSafeReturnUrl(
+        explicitReturnUrl || getCurrentReturnUrl(),
+        getCurrentReturnUrl()
+    );
+    window.location.href = `login.html?returnUrl=${encodeURIComponent(returnUrl)}`;
+}
+
+function getLoginHref(returnUrl) {
+    const safe = getSafeReturnUrl(returnUrl || getCurrentReturnUrl(), '/index.html');
+    return `login.html?returnUrl=${encodeURIComponent(safe)}`;
+}
+
 // ★ พจนานุกรมแปลข้อมูลผู้สอน (Instructor Mapping) เพื่อแปลงชื่อย่อจาก API เป็นข้อมูลโปรไฟล์ตัวเต็ม
 const INSTRUCTOR_MAP = {
     'Somkiat': {
@@ -135,8 +173,7 @@ function requireAuth() {
     // ตรวจสอบตัวแปรเช็คสถานะการล็อกอิน
     const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
     if (!token || !isLoggedIn) {
-        // หากไม่มี Token หรือยังไม่ได้ล็อกอิน ให้เปลี่ยนหน้าดีดผู้ใช้กลับไปที่หน้าล็อกอินทันที
-        window.location.href = 'login.html';
+        redirectToLogin();
         return false;
     }
     // ผ่านการเช็คสิทธิ์ (ส่งผลลัพธ์ว่าผ่าน)
@@ -162,6 +199,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('login-btn');
     const adminLink = document.getElementById('admin-link');
 
+    const loginLink = loginBtn ? loginBtn.querySelector('a[href*="login.html"]') : null;
+    if (loginLink) {
+        loginLink.href = getLoginHref();
+    }
+
     if (userMenu && loginBtn) {
         if (isLoggedIn) {
             // หากล็อกอินอยู่ ให้ซ่อนปุ่มเข้าสู่ระบบ และโชว์ปุ่มเมนูโปรไฟล์ของผู้ใช้
@@ -179,12 +221,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ★ [Phase 2 — ข้อ 9] Auth Guard: ตรวจสิทธิ์ก่อนเข้าหน้า protected
-    // ถ้าอยู่หน้า profile หรือ payment แล้วยังไม่ได้ล็อกอิน → ดีดกลับไป login
+    // ★ Auth Guard: protected pages redirect to login with returnUrl
     const currentPage = window.location.pathname.split('/').pop();
-    const protectedPages = ['profile.html', 'payment.html'];
+    const protectedPages = [
+        'profile.html',
+        'payment.html',
+        'admin-dashboard.html',
+        'admin-classes.html',
+        'admin-bookings.html',
+    ];
+    const adminPages = ['admin-dashboard.html', 'admin-classes.html', 'admin-bookings.html'];
+
     if (protectedPages.includes(currentPage)) {
-        if (!requireAuth()) return; // หยุดทำงานทั้งหมดถ้ายังไม่ได้ล็อกอิน
+        if (!requireAuth()) return;
+        if (adminPages.includes(currentPage) && localStorage.getItem('isAdmin') !== 'true') {
+            showToast('ไม่มีสิทธิ์เข้าถึงหน้านี้', 'danger');
+            window.location.href = 'index.html';
+            return;
+        }
+    }
+
+    // ★ Resume booking after login (Book → login → back → auto-book → payment)
+    const pendingClassId = sessionStorage.getItem('pendingBookClassId');
+    if (pendingClassId && getAuthToken() && currentPage === 'class-detail.html') {
+        sessionStorage.removeItem('pendingBookClassId');
+        processClassBooking(pendingClassId);
     }
 
     // สั่งให้ฟังก์ชันดึงข้อมูลคลาสเรียนทั้งหมดทำงาน (ถ้ามีฟังก์ชันนี้อยู่ในไฟล์)
@@ -605,19 +666,12 @@ async function loadSingleClassDetail() {
 
 // 2. ฟังก์ชันส่งข้อมูลคำร้องขอจองคลาสเรียนไปยังระบบหลังบ้าน
 async function processClassBooking(classId) {
-    // ตรวจสอบสิทธิ์: ดึงสถานะการล็อกอินปัจจุบันจาก localStorage
-    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-    if (!isLoggedIn) {
-        // หากผู้ใช้ยังไม่ได้ล็อกอิน ให้ขึ้นเตือนและบังคับดีดไปหน้า login
-        showToast('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ', 'warning');
-        window.location.href = 'login.html';
-        return;
-    }
-
     const token = getAuthToken();
-    if (!token) {
+    const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (!token || !isLoggedIn) {
         showToast('กรุณาเข้าสู่ระบบก่อนทำการจองคลาสเรียนครับ', 'warning');
-        window.location.href = 'login.html';
+        sessionStorage.setItem('pendingBookClassId', classId);
+        redirectToLogin();
         return;
     }
 
@@ -674,7 +728,8 @@ async function loadUserBookingHistory() {
 
     const token = getAuthToken();
     if (!token) {
-        container.innerHTML = `<div class="text-center text-muted py-5"><p>กรุณา<a href="login.html">เข้าสู่ระบบ</a>เพื่อดูประวัติการจอง</p></div>`;
+        const loginHref = getLoginHref();
+        container.innerHTML = `<div class="text-center text-muted py-5"><p>กรุณา<a href="${loginHref}">เข้าสู่ระบบ</a>เพื่อดูประวัติการจอง</p></div>`;
         return;
     }
 
