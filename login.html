@@ -31,11 +31,8 @@
                         <input type="password" id="password" class="form-control p-2"
                                placeholder="••••••••" autocomplete="current-password" required>
                     </div>
-                    <button type="submit" class="btn btn-primary-custom w-100 mb-3" data-role="user">
-                        เข้าสู่ระบบ (นักเรียน)
-                    </button>
-                    <button type="button" id="adminLoginBtn" class="btn btn-outline-secondary w-100">
-                        เข้าสู่ระบบ (แอดมิน)
+                    <button type="submit" class="btn btn-primary-custom w-100">
+                        เข้าสู่ระบบ
                     </button>
                 </form>
 
@@ -72,7 +69,7 @@
         })();
 
         const DEFAULT_USER_URL = '/index.html';
-        const DEFAULT_ADMIN_URL = '/admin-dashboard.html';
+        const DEFAULT_ADMIN_URL = '/admin.html';
 
         function getSafeReturnUrl(raw, fallback) {
             if (!raw) return fallback;
@@ -87,15 +84,6 @@
             return fallback;
         }
 
-        function getPostLoginRedirect(expectedRole, userRole) {
-            const params = new URLSearchParams(window.location.search);
-            const fallback = userRole === 'admin' ? DEFAULT_ADMIN_URL : DEFAULT_USER_URL;
-            if (expectedRole === 'admin') {
-                return DEFAULT_ADMIN_URL;
-            }
-            return getSafeReturnUrl(params.get('returnUrl'), fallback);
-        }
-
         // ฟังก์ชันช่วยแสดงกล่องข้อความแจ้งเตือนสีแดง/สีส้มบนหน้าจอเมื่อล็อกอินไม่สำเร็จ
         function showLoginAlert(message, type) {
             const alertEl = document.getElementById('loginAlert');
@@ -104,7 +92,7 @@
             alertEl.classList.remove('d-none'); // ดึงคลาสซ่อนออกเพื่อให้มองเห็นกล่องเตือน
         }
 
-        async function doLogin(expectedRole) {
+        async function doLogin() {
             if (typeof saveAuthSession !== 'function') {
                 showLoginAlert('ไม่สามารถโหลดระบบยืนยันตัวตนได้ กรุณารีเฟรชหน้า', 'danger');
                 return;
@@ -112,7 +100,6 @@
 
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
-            console.log('sending:', { email, password });
 
             try {
                 const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
@@ -122,50 +109,36 @@
                 });
 
                 const result = await response.json();
-                console.log('response:', result);
 
                 if (!response.ok || !result.success) {
-                    // หากตอบกลับสถานะไม่สำเร็จ ให้เปิดการแจ้งเตือนสีแดงบอกผู้ใช้
                     showLoginAlert(result.message || 'เข้าสู่ระบบไม่สำเร็จ', 'danger');
                     return;
                 }
 
-                // ดึง JWT Token และข้อมูลโปรไฟล์สิทธิ์ของผู้ใช้ที่หลังบ้านตอบกลับมา
                 const { token, user } = result.data;
-
-                // ตรวจเช็ค หากคลิกปุ่มแอดมินแต่สิทธิ์ในฐานข้อมูลไม่ใช่แอดมิน ให้ปฏิเสธการเข้าล็อกอิน
-                if (expectedRole === 'admin' && user.role !== 'admin') {
-                    showLoginAlert('บัญชีนี้ไม่มีสิทธิ์แอดมิน', 'warning');
-                    return;
-                }
-
                 saveAuthSession(token, user);
 
                 const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
                 const role = payload.role || user.role;
+                const params = new URLSearchParams(window.location.search);
+                const returnUrl = params.get('returnUrl');
+
                 if (role === 'admin') {
-                    window.location.href = '/admin-dashboard.html';
+                    const adminDest = returnUrl && returnUrl.includes('admin') ? returnUrl : '/admin.html';
+                    window.location.href = adminDest;
                     return;
                 }
-                window.location.href = getPostLoginRedirect(expectedRole, role);
+
+                window.location.href = getSafeReturnUrl(returnUrl, DEFAULT_USER_URL);
             } catch (error) {
                 console.error('Login error:', error);
                 showLoginAlert('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้', 'danger');
             }
         }
 
-        const loginForm = document.getElementById('loginForm');
-        loginForm.addEventListener('submit', (e) => {
+        document.getElementById('loginForm').addEventListener('submit', (e) => {
             e.preventDefault();
-            doLogin('user');
-        });
-
-        document.getElementById('adminLoginBtn').addEventListener('click', (e) => {
-            e.preventDefault();
-            // กรอกค่าอีเมลและรหัสแอดมินจำลองลงใน Input โดยอัตโนมัติเพื่ออำนวยความสะดวก
-            document.getElementById('email').value = 'admin';
-            document.getElementById('password').value = 'admin1234';
-            doLogin('admin'); // ดำเนินการล็อกอินสิทธิ์แอดมินระบบ
+            doLogin();
         });
     </script>
 </body>

@@ -2,11 +2,30 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0;url=admin-dashboard.html">
-    <title>Redirecting…</title>
-    <script>window.location.replace('admin-dashboard.html');</script>
+    <script>
+        const _token = localStorage.getItem('token');
+        if (!_token) {
+            window.location.replace('/login.html?returnUrl=/admin.html');
+        } else {
+            try {
+                const _payload = JSON.parse(atob(_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+                const _now = Math.floor(Date.now() / 1000);
+                if (_payload.exp < _now || _payload.role !== 'admin') {
+                    localStorage.removeItem('token');
+                    window.location.replace('/login.html');
+                } else {
+                    window.location.replace('/admin-dashboard.html');
+                }
+            } catch {
+                localStorage.removeItem('token');
+                window.location.replace('/login.html');
+            }
+        }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - จองคลาส.com</title>
 </head>
 <body>
-    <p>กำลังไปหน้าแอดมิน… <a href="admin-dashboard.html">คลิกที่นี่</a></p>
+    <p>กำลังตรวจสอบสิทธิ์…</p>
 </body>
 </html>
