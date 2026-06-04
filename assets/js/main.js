@@ -273,8 +273,8 @@ function renderClasses(classList) {
     classList.forEach(item => {
         // Logic เช็กที่นั่งเต็มเพื่อแสดงความแตกต่างบนป้าย (Badge)
         const isFull = item.seatsAvailable <= 0;
-        const badgeColor = isFull ? 'bg-danger' : 'bg-warning text-dark';
-        const badgeText = isFull ? 'เต็มแล้ว' : `${item.seatsTaken}/${item.capacity}`;
+        const badgeColor = isFull ? 'bg-danger' : 'bg-success';
+        const badgeText = isFull ? 'เต็มแล้ว' : `ว่าง`;
 
         // Logic ปรับแต่งปุ่มกด: หากคลาสเรียนเต็ม ให้เปลี่ยนปุ่มเป็น disabled สีเทา หากยังว่างให้เปิดลิงก์ปกติ
         const buttonHtml = isFull
@@ -292,7 +292,7 @@ function renderClasses(classList) {
                     <div class="card-body d-flex flex-column">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2">${item.category}</span>
-                            <span class="badge ${badgeColor} rounded-pill">${isFull ? '' : '<i class="bi bi-fire"></i> '} ${badgeText}</span>
+                            <span class="badge ${badgeColor} rounded-pill">${isFull ? '' : ''} ${badgeText}</span>
                         </div>
                         <h5 class="card-title fw-bold">${item.title}</h5>
                         <p class="text-muted small mb-2"><i class="bi bi-person-video3 me-1"></i> ผู้สอน: ${item.instructor}</p>
@@ -335,7 +335,8 @@ function debounce(func, delay) {
 // ★ ฟังก์ชันติดตั้ง Event Listeners สำหรับการค้นหาและคัดกรองข้อมูลคลาสเรียน (Event Delegation)
 function setupFilteringListeners() {
     const searchInput = document.querySelector('.hero-section input[type="text"]');
-    const sortSelect = document.querySelector('.mb-4 select');
+    const sortSelect = document.getElementById('sort-filter') || document.querySelector('.mb-4 select');
+    const categorySelect = document.getElementById('category-filter');
 
     if (searchInput) {
         // ใช้ Debounce 300ms ดัก Event การพิมพ์ค้นหาเพื่อความลื่นไหลประหยัดทรัพยากรการเรนเดอร์จอ
@@ -350,27 +351,41 @@ function setupFilteringListeners() {
             applyFiltersAndSort();
         });
     }
+
+    if (categorySelect) {
+        // ดัก Event dropdown จัดเรียงหมวดหมู่
+        categorySelect.addEventListener('change', () => {
+            applyFiltersAndSort();
+        });
+    }
 }
 
 // ★ ฟังก์ชันคำนวณการฟิลเตอร์และจัดเรียงข้อมูลแบบเรียลไทม์ฝั่งหน้าบ้าน
 function applyFiltersAndSort() {
     const searchInput = document.querySelector('.hero-section input[type="text"]');
-    const sortSelect = document.querySelector('.mb-4 select');
+    const sortSelect = document.getElementById('sort-filter') || document.querySelector('.mb-4 select');
+    const categorySelect = document.getElementById('category-filter');
 
     // คัดลอกอาเรย์จากแคชดั้งเดิมมาใช้งานเพื่อไม่ให้ข้อมูลดิบเสียหาย
     let filtered = [...classesCache];
 
-    // 1. คัดกรองข้อมูลด้วยคำค้นหา (ค้นหาได้ทั้ง ชื่อวิชา, ชื่อวิทยากร, หรือหมวดหมู่)
+    // 1. คัดกรองด้วยหมวดหมู่ (Category) ก่อน
+    if (categorySelect && categorySelect.value !== '') {
+        const selectedCategory = categorySelect.value;
+        filtered = filtered.filter(item => item.category === selectedCategory);
+    }
+
+    // 2. คัดกรองข้อมูลด้วยคำค้นหา (ค้นหาได้ทั้ง ชื่อวิชา, ชื่อวิทยากร, หรือหมวดหมู่)
     if (searchInput && searchInput.value.trim() !== '') {
         const query = searchInput.value.toLowerCase().trim();
-        filtered = filtered.filter(item => 
-            item.title.toLowerCase().includes(query) || 
+        filtered = filtered.filter(item =>
+            item.title.toLowerCase().includes(query) ||
             item.instructor.toLowerCase().includes(query) ||
             item.category.toLowerCase().includes(query)
         );
     }
 
-    // 2. จัดเรียงข้อมูลตามเงื่อนไข (Sorting)
+    // 3. จัดเรียงข้อมูลตามเงื่อนไข (Sorting)
     if (sortSelect) {
         const sortValue = sortSelect.value;
         if (sortValue === 'ราคา ต่ำ-สูง') {
@@ -732,7 +747,7 @@ async function cancelBooking(bookingId) {
         }
 
         showToast('ยกเลิกการจองคลาสเรียนสำเร็จแล้วครับ', 'success');
-        
+
         // โหลดประวัติการจองใหม่เพื่ออัปเดตสถิติและสถานะบนหน้าจอแบบเรียลไทม์ (Reactive UI)
         loadUserBookingHistory();
 
